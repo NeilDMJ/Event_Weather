@@ -2,18 +2,19 @@ from fastapi import FastAPI,Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.nasapower import get_climate_projection
 
+# backend/app/main.py
+from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from app.services.nasapower import get_climate_projection
+from typing import List, Optional
+import os
+
 app = FastAPI(
     title="Climate Projection API",
     description="API for retrieving climate projection data from NASA POWER",
     version="1.0.0",
 )
-# backend/app/main.py
-from fastapi import FastAPI, Query, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from app.services.nasapower import get_climate_projection
-from app.ml.climate_predictor import ClimatePredictionModel
-from typing import List, Optional
-import os
+
 
 app = FastAPI(
     title="Will It Rain On My Parade - NASA Space Apps",
@@ -52,7 +53,7 @@ async def get_climate_data(
     lat: float = Query(..., description="Latitud en grados decimales"),
     lon: float = Query(..., description="Longitud en grados decimales"),
     start: int = Query(2020, description="Año de inicio del rango"),
-    end: int = Query(2030, description="Año de fin del rango"),
+    end: int = Query(2025, description="Año de fin del rango"),
 ):
     """
     Devuelve la proyección climática (precipitación total mensual)

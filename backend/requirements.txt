@@ -6,3 +6,5 @@ numpy
 scikit-learn
 joblib
 requests
+google-generativeai
+

@@ -66,7 +66,7 @@ async def get_complete_climate_data(
     Devuelve la proyección climática completa (precipitación total mensual)
     para la ubicación y rango de años especificados.
 
-      Incluye:
+    Incluye:
     - Precipitación (PRECTOTCORR)
     - Temperatura (T2M, T2M_MAX, T2M_MIN)
     - Humedad relativa (RH2M)
@@ -94,7 +94,7 @@ async def get_atmosferic_data(
     end: int = Query(2030, description="Año de fin del rango"),
 ):
     """
-      Datos atmosféricos:
+    Datos atmosféricos:
     - Humedad relativa (RH2M)
     - Velocidad del viento (WS2M, WS10M, WS50M)
     - Dirección del viento (WD2M, WD10M, WD50M)
@@ -107,9 +107,8 @@ async def get_solar_data(
     start: int = Query(2020, description="Año de inicio del rango"),
     end: int = Query(2030, description="Año de fin del rango"),
 ):
-    """
-      Datos solares:
-      Datos de radiación solar:
+    """Datos solares:
+    Datos de radiación solar:
     - Irradiancia de onda corta (ALLSKY_SFC_SW_DWN)
     - Irradiancia de onda larga (ALLSKY_SFC_LW_DWN)
     - Nubosidad (CLOUD_AMT)

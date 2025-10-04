@@ -1,15 +1,18 @@
-<<<<<<< HEAD
+
 from fastapi import FastAPI, Query, HTTPException
-=======
+
 from fastapi import FastAPI,Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.nasapower import get_climate_projection
 from app.services.nasapower import get_complete_climate_projection
-
-
+from app.services.nasapower import get_temperature_projection
+from app.services.nasapower import get_atmospheric_projection   
+from app.services.nasapower import get_solar_projection
+from typing import List, Optional
+import os
 # backend/app/main.py
 from fastapi import FastAPI, Query
->>>>>>> adb74 (Endpoints para el procesamiento de datos)
+
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.nasapower import get_climate_projection
 from typing import List, Optional
@@ -58,11 +61,10 @@ async def get_climate_data(
     Devuelve la proyección climática (precipitación total mensual)
     para la ubicación y rango de años especificados.
     """
-<<<<<<< HEAD
-=======
+    
     data = await get_climate_projection(lat, lon, start, end)
     return {"location": {"lat": lat, "lon": lon}, "projection": data}
->>>>>>> adb74 (Endpoints para el procesamiento de datos)
+
 
 @app.get("/climate/complete")
 async def get_complete_climate_data(

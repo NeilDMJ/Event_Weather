@@ -1,286 +1,219 @@
+/* --- VARIABLES Y ESTILOS GLOBALES --- */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-:root{
-    --background: rgb(0 0 0);
+:root {
+    --background: #121212;
     --bg-secondary: #1E1E1E;
-    --text-primary: rgb(255 255 255);
+    --text-primary: #FFFFFF;
     --text-muted: #818085;
-    --card--color: #242424;
-    --active-bg: #333333;
+    --card-color: #242424;
+    --border-color: #333333;
 }
 
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     background-color: var(--background);
-    display: flex;
-    flex-direction: column;
-    background-color: var(--background);
-}
-
-/* header styles */ 
-header {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    max-width: 100%;
-    height: 70px;
-    border-bottom: 1px solid var();
-}
-.button {
-    display: flex;
-    margin: 10px;
-    width: 50px;
-    height: 50px;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--bg-secondary);
-    border-radius: 50px;
-}
-
-.notification-button {
-    fill: white;
-}
-
-.location {
-    font-family: 'JetBrains Mono', Arial;
-    display: flex;
-    width: 200px;
-    height: 70px;
-    align-items: center;
-    justify-content: center;
     color: var(--text-primary);
-    margin-right: 27rem;
+    min-height: 100vh;
+}
+
+/* --- ESTILOS DEL HEADER --- */ 
+.main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 70px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-group {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espacio entre elementos del mismo grupo */
+}
+
+.icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background-color: var(--bg-secondary);
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.icon-button img {
+    width: 100%;
+    height: auto;
+}
+
+.location-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    width: 150px;
+
     svg {
         width: 30px;
         height: 30px;
     }
+}
+.location-display img { width: 24px; }
+
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .search-bar {
     display: flex;
     align-items: center;
-    justify-content: space-around;
-    width: 300px;
+    gap: 10px;
+    padding: 0 15px;
+    height: 45px;
+    width: 250px;
     border-radius: 30px;
     background-color: var(--bg-secondary);
-    svg {
-        fill: white;
-        width: 30px;
-        height: 40px;
-    }
-
-    input {
-        background-color: transparent;
-        outline: none;
-        border: none;
-        color: white;
-    }
 }
 
-.more-options {
-    fill: white;
-    width: 20px;
-    height: 30px;
+.search-bar img { width: 20px; }
+
+.search-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    width: 100%;
+    font-size: 16px;
 }
 
 #date {
-    margin: 0 30rem 0 10px;
-    display: flex;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
-    width: 130px;
-    height: 40px;
-    text-align: center;
+    height: 45px;
+    padding: 0 15px;
     border-radius: 20px;
     border: none;
     outline: none;
+    text-align: center;
 }
 
-.light-mode {
-    width: 150px;
-    display: flex;
-    justify-content: end;
-    svg {
-        border-radius: 20px;
-        margin-right: 11px;
-        fill: white;
-        width: 30px;
-        height: 30px;
-    }
+/* --- LAYOUT DEL DASHBOARD CON CSS GRID --- */
+.dashboard-grid {
+    display: grid;
+    padding: 20px;
+    gap: 20px; /* Espacio entre todos los elementos del grid */
+    
+    /* Definimos las columnas: una fija para la tarjeta principal, y dos flexibles */
+    grid-template-columns: 350px 1fr 1fr;
+    
+    /* Definimos las áreas con nombres para que sea fácil de entender */
+    grid-template-areas:
+        "nav nav nav"
+        "today map summary"
+        "today map summary";
 }
 
+/* --- ASIGNACIÓN DE ÁREAS A CADA ELEMENTO --- */
+.time-nav             { grid-area: nav; }
+.current-weather-card { grid-area: today; }
+.map-overview-card    { grid-area: map; }
+.day-summary-card     { grid-area: summary; }
+
+/* --- ESTILOS DE LA NAVEGACIÓN DE TIEMPO --- */
 .time-nav {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 2rem 0 0 1rem;
-    font-size: 18px;
-    font-family: 'Instrumental Sans', system-ui;
-    a {
-        color: var(--text-muted);
-        text-decoration: none;
-    }
-
-    a:hover {
-        color: var(--text-primary);
-        font-weight: 800;
-    }
+    gap: 20px;
+    margin-bottom: 10px;
 }
 
-/* --- TARJETA DEL DÍA ACTUAL --- */
-        .today-overview {
-            grid-area: today-overview;
-            background-color: var(--card-color);
-            border-radius: 15px;
-            padding: 20px;
-        }
+.time-nav button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px 0;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+}
 
-        .today-overview .day-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .today-overview .day-header h2 {
-            font-size: 18px;
-            font-weight: 500;
-        }
-        
-        .today-overview .time {
-            background-color: var(--active-bg);
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 14px;
-        }
+.time-nav button.active,
+.time-nav button:hover {
+    color: var(--text-primary);
+    border-bottom-color: var(--text-primary);
+}
 
-        .today-weather {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+/* --- ESTILO BASE PARA TODAS LAS TARJETAS --- */
+.card {
+    background-color: var(--card-color);
+    border-radius: 20px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+}
+.card h3 {
+    font-weight: 500;
+    margin-bottom: 15px;
+}
 
-        .today-weather .temp {
-            font-size: 48px;
-            font-weight: 600;
-        }
+/* --- ESTILOS ESPECÍFICOS DE LA TARJETA PRINCIPAL --- */
+.current-weather-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        .today-weather .weather-icon {
-            width: 50px;
-            height: 50px;
-        }
+.current-weather-card h2 { font-size: 24px; font-weight: 600; }
+.current-weather-card .time { font-size: 16px; color: var(--text-muted); }
 
-        .weather-details {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            border-top: 1px solid var(--active-bg);
-            padding-top: 20px;
-        }
-        
-        .weather-details p, .sun-info div {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-        
-        .sun-info {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-        }
+.current-weather-card .weather-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: 20px 0;
+    flex-grow: 1; /* Hace que esta sección ocupe el espacio disponible */
+}
 
-        .sun-info div {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+.current-weather-card .temperature { font-size: 72px; font-weight: 700; }
+.current-weather-card .weather-icon { width: 100px; }
+.current-weather-card .weather-details {
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    color: var(--text-muted);
+}
 
-        /* --- PRONÓSTICO 7 DÍAS --- */
-        .forecast {
-            grid-area: forecast;
-            background-color: var(--card-color);
-            border-radius: 15px;
-            padding: 20px;
-        }
+/* --- ESTILOS DE MAPA Y RESUMEN --- */
+.map-placeholder {
+    flex-grow: 1; /* Ocupa el espacio vertical disponible */
+    background-color: var(--bg-secondary);
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-muted);
+}
 
-        .forecast h3 {
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
-
-        .forecast-days {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .day-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            padding: 15px 10px;
-            border-radius: 10px;
-            width: 100px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .day-card.active, .day-card:hover {
-            background-color: var(--active-bg);
-        }
-        
-        .day-card .day-name {
-            font-weight: 600;
-        }
-        
-        .day-card .temp {
-            font-size: 20px;
-            font-weight: 500;
-        }
-
-        /* --- MAPA Y RESUMEN DEL DÍA --- */
-        .map-overview, .day-summary {
-            background-color: var(--card-color);
-            border-radius: 15px;
-            padding: 20px;
-        }
-        
-        .map-overview {
-            grid-area: map;
-        }
-        
-        .day-summary {
-            grid-area: day-summary;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .map-overview h3, .day-summary h3 {
-            font-weight: 500;
-            margin-bottom: 15px;
-        }
-        
-        .map-placeholder {
-            background-color: var(--active-bg);
-            border-radius: 10px;
-            height: 100%;
-            min-height: 200px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-        
-        .summary-graph img {
-            width: 100%;
-            height: auto;
-            object-fit: contain;
-            margin-top: auto; /* Push graph to bottom */
-        }
+.summary-graph {
+    flex-grow: 1;
+    display: flex;
+    align-items: flex-end; /* Alinea la imagen abajo */
+}
+.summary-graph img {
+    width: 100%;
+    height: auto;
+}

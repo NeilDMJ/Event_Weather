@@ -1,21 +1,12 @@
-from fastapi import FastAPI,Query
-from fastapi.middleware.cors import CORSMiddleware
-from app.services.nasapower import get_climate_projection
-from app.services.nasapower import get_complete_climate_projection
-from app.services.nasapower import get_temperature_projection
-from app.services.nasapower import get_atmospheric_projection
-from app.services.nasapower import get_solar_projection
-
-
-app = FastAPI(
-    title="Climate Projection API",
-    description="API for retrieving climate projection data from NASA POWER",
-    version="1.0.0",
-)
-# backend/app/main.py
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from app.services.nasapower import get_climate_projection
+from app.services.nasapower import (
+    get_climate_projection,
+    get_complete_climate_projection,
+    get_temperature_projection,
+    get_atmospheric_projection,
+    get_solar_projection
+)
 
 app = FastAPI(
     title="Will It Rain On My Parade - NASA Space Apps",

@@ -59,6 +59,7 @@ async def get_climate_data(
     Devuelve la proyección climática (precipitación total mensual)
     para la ubicación y rango de años especificados.
     """
+    
 @app.get("/climate/complete")
 async def get_complete_climate_data(
     lat: float = Query(..., description="Latitud en grados decimales"),

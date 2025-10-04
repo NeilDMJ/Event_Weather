@@ -57,40 +57,12 @@ body {
 }
 
 .location-display {
-    font-family: 'JetBrains Mono', Arial;
+    font-family: 'JetBrains Mono', Arial, sans-serif;
     font-size: 20px;
     display: flex;
     align-items: center;
     gap: 8px;
     font-weight: 500;
-    width: 200px;
-    margin-left: -29rem;
-}
-
-/* Para Laptops y pantallas hasta 1600px */
-@media (max-width: 1600px) {
-    .location-display {
-        margin-left: -18rem; /* Reducimos un poco el margen negativo */
-    }
-}
-
-/* Para Laptops más pequeñas y tablets grandes, hasta 1280px */
-@media (max-width: 1280px) {
-    .location-display {
-        margin-left: -4rem; /* Una reducción más significativa */
-    }
-}
-
-/* Para Tablets en formato vertical, hasta 1024px */
-@media (max-width: 400px) {
-    .location-display {
-        /* Aquí ya no intentamos centrarlo con un negativo, lo posicionamos de otra forma */
-        margin-left: 1rem;
-        /* Hacemos que la barra de búsqueda desaparezca para dar espacio */
-        .search-form {
-            display: none;
-        }
-    }
 }
 
 .location-display svg {
@@ -102,6 +74,11 @@ body {
     display: flex;
     align-items: center;
     gap: 15px;
+}
+
+/* --- ESTILOS PARA LA BÚSQUEDA CON SUGERENCIAS --- */
+.search-wrapper {
+    position: relative; /* Contexto de posicionamiento para las sugerencias */
 }
 
 .search-bar {
@@ -128,11 +105,42 @@ body {
     color: white;
     width: 100%;
     font-size: 16px;
-    font-family: 'Instrument Sans', Arial;
+    font-family: 'Instrument Sans', Arial, sans-serif;
 }
 
+#suggestions-container {
+    display: none; /* Oculto por defecto */
+    position: absolute;
+    top: 50px; /* Justo debajo de la barra de búsqueda */
+    left: 0;
+    width: 100%;
+    background-color: var(--card-color);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    z-index: 1000; /* Asegura que esté por encima de otros elementos */
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    font-size: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background-color: var(--bg-secondary);
+}
+/* --- FIN DE ESTILOS DE SUGERENCIAS --- */
+
+
 #date {
-    font-family: 'Instrument Sans', Arial;
+    font-family: 'Instrument Sans', Arial, sans-serif;
     font-size: 16px;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
@@ -149,12 +157,13 @@ body {
     display: grid;
     padding: 20px;
     gap: 20px;
+    height: calc(100vh - 70px);
     
     grid-template-columns: 350px repeat(5, 1fr);
+    grid-template-rows: auto 1fr 1fr;
     
     grid-template-areas:
         "nav nav nav nav nav nav"
-        "today mini1 mini2 mini3 mini4 mini5"
         "today mini1 mini2 mini3 mini4 mini5"
         "map map map summary summary summary";
 }
@@ -165,11 +174,13 @@ body {
 .map-overview-card    { grid-area: map; }
 .day-summary-card     { grid-area: summary; }
 
-.mini-card:nth-of-type(2) { grid-area: mini1; }
-.mini-card:nth-of-type(3) { grid-area: mini2; }
-.mini-card:nth-of-type(4) { grid-area: mini3; }
-.mini-card:nth-of-type(5) { grid-area: mini4; }
-.mini-card:nth-of-type(6) { grid-area: mini5; }
+/* Asignación a los mini-cards por su posición */
+.mini-card:nth-of-type(1) { grid-area: mini1; }
+.mini-card:nth-of-type(2) { grid-area: mini2; }
+.mini-card:nth-of-type(3) { grid-area: mini3; }
+.mini-card:nth-of-type(4) { grid-area: mini4; }
+.mini-card:nth-of-type(5) { grid-area: mini5; }
+
 
 /* --- ESTILOS DE LA NAVEGACIÓN DE TIEMPO --- */
 .time-nav {
@@ -187,6 +198,7 @@ body {
     padding: 5px 0;
     font-weight: 500;
     border-bottom: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
 }
 
 .time-nav button.active,
@@ -248,14 +260,19 @@ body {
     padding-top: 20px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 15px;
     color: var(--text-muted);
+}
+.weather-details > p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 /* --- ESTILOS DE MINI CARDS --- */
 .mini-card {
     height: 100%;
-    min-height: 260px;
+    min-height: 150px;
     display: flex;
     flex-direction: column;
     text-align: center;
@@ -280,6 +297,7 @@ body {
     width: 70px;
     height: 70px;
     object-fit: contain;
+    margin: 10px 0;
 }
 
 .mini-card footer {
@@ -292,8 +310,9 @@ body {
     font-size: inherit;
 }
 
+
 /* --- ESTILOS DE MAPA Y RESUMEN --- */
-.map-placeholder {
+.map-overview-card #mi_mapa {
     flex-grow: 1;
     background-color: var(--bg-secondary);
     border-radius: 15px;
@@ -304,16 +323,42 @@ body {
     min-height: 300px;
 }
 
-.summary-graph {
+.day-summary-card .summary-graph {
     flex-grow: 1;
     display: flex;
     align-items: flex-end;
     min-height: 300px;
     background-color: var(--bg-secondary);
-    border-radius: 15px;
+    border-radius: 15px;}
+
+/* Media query para dispositivos más pequeños */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto;
+        grid-template-areas:
+            "nav"
+            "today"
+            "summary"
+            "map"
+            "mini-cards";
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .mini-card {
+        display: none;
+    }
+    
+    .main-header {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+        gap: 10px;
+    }
+    .search-form {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
-.summary-graph img {
-    width: 100%;
-    height: auto;
-}

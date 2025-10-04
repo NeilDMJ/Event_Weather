@@ -19,7 +19,7 @@ async def collect_data(locations):
 
     for lat, lon in locations:
         try:
-            data = await get_complete_climate_projection(lat, lon, 2020, 2024)
+            data = await get_complete_climate_projection(lat, lon, 2010, 2025)
             if "parameters" in data and data["parameters"]:
                 # Crear lista vacía para los registros
                 records_list = []

@@ -1,0 +1,4 @@
+Modelo: GradientBoosting
+Fecha entrenamiento: 2025-10-04 15:20:21.075784
+Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Temperature_C', 'Temperature_Max_C', 'Temperature_Min_C', 'Humidity_Percent', 'Wind_Speed_ms', 'Pressure_kPa', 'Cloud_Cover_Percent', 'Month_sin', 'Month_cos', 'Season', 'Temp_lag1', 'Humidity_lag1', 'Precipitation_lag1', 'Temp_ma3', 'Humidity_ma3', 'Temp_Range']
+Métricas: {'train_MSE': 0.024714376952966494, 'train_MAE': 0.11531466705466312, 'train_R2': 0.9984036165589082, 'test_MSE': 0.3092627866054598, 'test_MAE': 0.2779770108458038, 'test_R2': 0.9502087178069354}

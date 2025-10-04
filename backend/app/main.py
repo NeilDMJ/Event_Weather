@@ -1,6 +1,10 @@
 from fastapi import FastAPI,Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.nasapower import get_climate_projection
+from app.services.nasapower import get_complete_climate_projection
+from app.services.nasapower import get_temperature_projection
+from app.services.nasapower import get_atmospheric_projection
+from app.services.nasapower import get_solar_projection
 
 app = FastAPI(
     title="Climate Projection API",
@@ -55,6 +59,9 @@ async def get_climate_data(
     Devuelve la proyección climática (precipitación total mensual)
     para la ubicación y rango de años especificados.
     """
+    data = await get_climate_projection(lat, lon, start, end)
+    return {"location": {"lat": lat, "lon": lon}, "projection": data}
+
 @app.get("/climate/complete")
 async def get_complete_climate_data(
     lat: float = Query(..., description="Latitud en grados decimales"),
@@ -74,6 +81,8 @@ async def get_complete_climate_data(
     - Presión superficial (PS)
     - Nubosidad (CLOUD_AMT)
     """
+    data = await get_complete_climate_projection(lat, lon, start, end)
+    return {"location": {"lat": lat, "lon": lon}, "projection": data}
 
 @app.get("/climate/temperature")
 async def get_temperatura_data(
@@ -85,6 +94,8 @@ async def get_temperatura_data(
     """
     Temperatura a 2 metros : T2M, T2M_MAX, T2M_MIN
     """
+    data = await get_temperature_projection(lat, lon, start, end)
+    return {"location": {"lat": lat, "lon": lon}, "projection": data}
 
 @app.get("/climate/atmosferic")
 async def get_atmosferic_data(
@@ -100,6 +111,9 @@ async def get_atmosferic_data(
     - Dirección del viento (WD2M, WD10M, WD50M)
     - Presión superficial (PS)
     """
+    data = await get_atmospheric_projection(lat, lon, start, end)
+    return {"location": {"lat": lat, "lon": lon}, "projection": data}
+
 @app.get("/climate/solar")
 async def get_solar_data(
     lat: float = Query(..., description ="Latitud en grados decimales"),
@@ -113,6 +127,5 @@ async def get_solar_data(
     - Irradiancia de onda larga (ALLSKY_SFC_LW_DWN)
     - Nubosidad (CLOUD_AMT)
     """ 
-
-    data = await get_climate_projection(lat, lon, start, end)
+    data = await get_solar_projection(lat, lon, start, end)
     return {"location": {"lat": lat, "lon": lon}, "projection": data}

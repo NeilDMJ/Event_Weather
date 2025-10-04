@@ -7,6 +7,10 @@ from app.services.nasapower import get_climate_projection
 
 locations = [
     (17.82703226502565, -97.80431094116672), #UTM
+    (17.866667, -97.783333), #Centro de Oaxaca
+    (17.060816, -96.726588), #Puerto Escondido
+    (16.8531, -99.8901),     #Huatulco
+    (16.4333, -98.6000),     #Salina Cruz
 ]
 
 async def collect_data(locations):

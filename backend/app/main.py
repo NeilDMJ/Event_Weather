@@ -8,9 +8,12 @@ app = FastAPI(
     version="1.0.0",
 )
 # backend/app/main.py
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.nasapower import get_climate_projection
+from app.ml.climate_predictor import ClimatePredictionModel
+from typing import List, Optional
+import os
 
 app = FastAPI(
     title="Will It Rain On My Parade - NASA Space Apps",

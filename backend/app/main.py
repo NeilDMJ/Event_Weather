@@ -6,6 +6,7 @@ from app.services.nasapower import get_temperature_projection
 from app.services.nasapower import get_atmospheric_projection
 from app.services.nasapower import get_solar_projection
 
+
 app = FastAPI(
     title="Climate Projection API",
     description="API for retrieving climate projection data from NASA POWER",

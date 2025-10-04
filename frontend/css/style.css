@@ -64,7 +64,33 @@ body {
     gap: 8px;
     font-weight: 500;
     width: 200px;
-    margin-left: -52rem;
+    margin-left: -29rem;
+}
+
+/* Para Laptops y pantallas hasta 1600px */
+@media (max-width: 1600px) {
+    .location-display {
+        margin-left: -18rem; /* Reducimos un poco el margen negativo */
+    }
+}
+
+/* Para Laptops más pequeñas y tablets grandes, hasta 1280px */
+@media (max-width: 1280px) {
+    .location-display {
+        margin-left: -4rem; /* Una reducción más significativa */
+    }
+}
+
+/* Para Tablets en formato vertical, hasta 1024px */
+@media (max-width: 400px) {
+    .location-display {
+        /* Aquí ya no intentamos centrarlo con un negativo, lo posicionamos de otra forma */
+        margin-left: 1rem;
+        /* Hacemos que la barra de búsqueda desaparezca para dar espacio */
+        .search-form {
+            display: none;
+        }
+    }
 }
 
 .location-display svg {

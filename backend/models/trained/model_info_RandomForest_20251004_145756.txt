@@ -1,0 +1,4 @@
+Modelo: RandomForest
+Fecha entrenamiento: 2025-10-04 14:57:56.266573
+Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Temperature_C', 'Temperature_Max_C', 'Temperature_Min_C', 'Humidity_Percent', 'Wind_Speed_ms', 'Pressure_kPa', 'Cloud_Cover_Percent', 'Month_sin', 'Month_cos', 'Season', 'Temp_lag1', 'Humidity_lag1', 'Precipitation_lag1', 'Temp_ma3', 'Humidity_ma3', 'Temp_Range']
+Métricas: {'train_MSE': 0.17425969851063933, 'train_MAE': 0.2602914893617025, 'train_R2': 0.9731213239825289, 'test_MSE': 0.4647288749999999, 'test_MAE': 0.5754499999999992, 'test_R2': 0.9345001977591989}

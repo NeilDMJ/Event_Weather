@@ -6,7 +6,6 @@ services:
     ports:
       - "8004:8000"
     volumes:
-      - ./models:/app/models
       - ./.env:/app/.env
     environment:
       - PYTHONPATH=/app

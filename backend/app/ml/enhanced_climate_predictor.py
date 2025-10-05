@@ -1,6 +1,5 @@
 # backend/app/ml/enhanced_climate_predictor.py
 from app.database.model_repository import ModelRepository, ModelRecord
-from app.ml.climate_predictor_functional import ClimatePredictor
 import os
 from typing import Dict, List, Optional
 import asyncio
@@ -13,8 +12,15 @@ class EnhancedClimatePredictor:
         if self.use_database:
             self.model_repo = ModelRepository(database_url)
         else:
-            # Fallback al sistema actual de archivos
-            self.predictor = ClimatePredictor()
+            # Fallback al sistema actual de archivos - importar solo cuando sea necesario
+            try:
+                from app.ml.climate_predictor_functional import ClimatePredictor
+                self.predictor = ClimatePredictor()
+            except ImportError:
+                # Si no existe el módulo de fallback, usar solo base de datos
+                self.predictor = None
+                self.use_database = True
+                self.model_repo = ModelRepository(database_url) if database_url else None
         
         self.variable_names = [
             'Temperature_C',
@@ -132,6 +138,14 @@ class EnhancedClimatePredictor:
     
     async def _predict_with_files(self, latitude: float, longitude: float, target_date: str) -> Dict:
         """Fallback: predicción usando archivos (método original)"""
+        # Verificar si el predictor de archivos está disponible
+        if self.predictor is None:
+            return {
+                'success': False,
+                'error': 'File-based predictor not available, database required',
+                'source': 'file_fallback'
+            }
+        
         # Usar el método original del ClimatePredictor
         try:
             loop = asyncio.get_event_loop()
@@ -177,7 +191,8 @@ class EnhancedClimatePredictor:
             raise ValueError("Base de datos no configurada")
         
         # Entrenar modelo (usar tu lógica existente)
-        # ... código de entrenamiento ...
+        # TODO: Implementar entrenamiento real del modelo
+        trained_model = None  # Placeholder - implementar entrenamiento
         
         # Guardar en base de datos
         metadata = {

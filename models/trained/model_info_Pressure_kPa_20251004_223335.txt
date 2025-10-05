@@ -1,5 +1,0 @@
-Modelo: Pressure_kPa
-Algoritmo: GradientBoostingRegressor
-Ubicación entrenamiento: 40.0, 74.0
-Fecha entrenamiento: 2025-10-04T22:33:35.041048
-Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Month_sin', 'Month_cos']

@@ -1,5 +1,0 @@
-Modelo: Temperature_Min_C
-Algoritmo: GradientBoostingRegressor
-Ubicación entrenamiento: 18.827, -96.8043
-Fecha entrenamiento: 2025-10-04T20:19:48.956552
-Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Month_sin', 'Month_cos']

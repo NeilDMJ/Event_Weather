@@ -1,242 +1,282 @@
-"""
-Functional Climate Predictor
-A functional approach to climate prediction with simplified ML models.
-"""
-
-import joblib
+# Predecir clima usando modelos entrenados - versión funcional simplificada
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, Optional, List
-import logging
-from pathlib import Path
+import joblib
+import os
+import glob
+import re
+import math
+import asyncio
+import sys
+from datetime import datetime
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-logger = logging.getLogger(__name__)
+# Agregar path para importaciones
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-class FunctionalClimatePredictor:
-    """
-    A functional climate predictor that provides simplified prediction capabilities.
-    This serves as a fallback or alternative to the enhanced database-backed predictor.
-    """
+def calcular_distancia_geografica(lat1, lon1, lat2, lon2):
+    """Calcular distancia entre dos puntos usando fórmula de Haversine (km)"""
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    r = 6371  # Radio de la Tierra en km
+    return c * r
+
+def extraer_coordenadas_archivo(filename):
+    """Extraer coordenadas del archivo de información del modelo"""
+    try:
+        with open(filename, 'r') as f:
+            content = f.read()
+        for line in content.split('\n'):
+            if "Ubicación entrenamiento:" in line:
+                coords_part = line.split("Ubicación entrenamiento:")[1].strip()
+                lat_str, lon_str = coords_part.split(',')
+                lat = float(lat_str.strip())
+                lon = float(lon_str.strip())
+                return lat, lon
+    except Exception as e:
+        pass
+    return None, None
+
+def obtener_modelos_entrenados(models_dir="../models/trained"):
+    """Obtener lista de modelos entrenados con sus coordenadas"""
+    if not os.path.exists(models_dir):
+        return []
     
-    def __init__(self, models_dir: str = "/app/models/trained"):
-        """
-        Initialize the functional climate predictor.
-        
-        Args:
-            models_dir: Directory containing the trained models
-        """
-        self.models_dir = Path(models_dir)
-        self.models = {}
-        self.model_info = {}
-        self.load_available_models()
+    info_pattern = os.path.join(models_dir, "model_info_*.txt")
+    info_files = glob.glob(info_pattern)
+    modelos_disponibles = []
     
-    def load_available_models(self):
-        """Load all available models from the models directory."""
-        try:
-            if not self.models_dir.exists():
-                logger.warning(f"Models directory {self.models_dir} does not exist")
-                return
-            
-            # Find all .joblib files
-            model_files = list(self.models_dir.glob("*.joblib"))
-            
-            for model_file in model_files:
-                try:
-                    # Extract variable and timestamp from filename
-                    filename = model_file.stem
-                    if filename.startswith("model_"):
-                        parts = filename.split("_")
-                        if len(parts) >= 4:
-                            variable = "_".join(parts[1:-2])  # Everything between "model_" and timestamp
-                            timestamp = "_".join(parts[-2:])
-                            
-                            # Load the model
-                            model = joblib.load(model_file)
-                            model_key = f"{variable}_{timestamp}"
-                            self.models[model_key] = model
-                            
-                            # Try to load corresponding model info
-                            info_file = self.models_dir / f"model_info_{variable}_{timestamp}.txt"
-                            if info_file.exists():
-                                with open(info_file, 'r') as f:
-                                    self.model_info[model_key] = f.read()
-                            
-                            logger.info(f"Loaded model: {model_key}")
-                
-                except Exception as e:
-                    logger.error(f"Error loading model {model_file}: {e}")
-            
-            logger.info(f"Loaded {len(self.models)} models successfully")
-            
-        except Exception as e:
-            logger.error(f"Error loading models: {e}")
+    for info_file in info_files:
+        lat, lon = extraer_coordenadas_archivo(info_file)
+        if lat is not None and lon is not None:
+            filename = os.path.basename(info_file)
+            parts = filename.replace("model_info_", "").replace(".txt", "").split("_")
+            if len(parts) >= 2:
+                timestamp = parts[-1]
+                param = "_".join(parts[:-1])
+                model_file = os.path.join(models_dir, f"model_{param}_{timestamp}.joblib")
+                if os.path.exists(model_file):
+                    modelos_disponibles.append({
+                        'parameter': param,
+                        'timestamp': timestamp,
+                        'latitude': lat,
+                        'longitude': lon,
+                        'model_file': model_file,
+                        'info_file': info_file
+                    })
     
-    def get_available_variables(self) -> List[str]:
-        """Get list of available climate variables."""
-        variables = set()
-        for model_key in self.models.keys():
-            # Extract variable name (everything before the last two underscore-separated parts)
-            parts = model_key.split("_")
-            if len(parts) >= 3:
-                variable = "_".join(parts[:-2])
-                variables.add(variable)
-        return list(variables)
+    return modelos_disponibles
+
+def buscar_modelo_ideal(coordenadas, distancia_maxima=100):
+    """Buscar modelo entrenado más cercano o determinar si necesita entrenar uno nuevo"""
+    lat_objetivo, lon_objetivo = coordenadas
     
-    def get_latest_model_for_variable(self, variable: str) -> Optional[Any]:
-        """Get the latest model for a specific variable."""
-        matching_models = [key for key in self.models.keys() if key.startswith(f"{variable}_")]
-        
-        if not matching_models:
-            return None
-        
-        # Sort by timestamp (assuming format is consistent)
-        latest_model_key = sorted(matching_models)[-1]
-        return self.models[latest_model_key]
+    modelos_disponibles = obtener_modelos_entrenados()
+    if not modelos_disponibles:
+        return {'encontrado': False, 'necesita_entrenar': True, 'coordenadas_objetivo': coordenadas}
     
-    def predict_single_variable(self, variable: str, features: Dict[str, float]) -> Optional[float]:
-        """
-        Predict a single climate variable.
-        
-        Args:
-            variable: Climate variable to predict
-            features: Input features for prediction
-            
-        Returns:
-            Predicted value or None if prediction fails
-        """
-        try:
-            model = self.get_latest_model_for_variable(variable)
-            if model is None:
-                logger.warning(f"No model found for variable: {variable}")
-                return None
-            
-            # Create feature array - this is a simplified approach
-            # In a real implementation, you'd need to ensure feature order matches training
-            feature_values = list(features.values())
-            
-            if not feature_values:
-                logger.warning("No features provided for prediction")
-                return None
-            
-            # Make prediction
-            prediction = model.predict([feature_values])[0]
-            return float(prediction)
-            
-        except Exception as e:
-            logger.error(f"Error predicting {variable}: {e}")
-            return None
-    
-    def predict_all_variables(self, features: Dict[str, float]) -> Dict[str, float]:
-        """
-        Predict all available climate variables.
-        
-        Args:
-            features: Input features for prediction
-            
-        Returns:
-            Dictionary of predictions for each variable
-        """
-        predictions = {}
-        
-        for variable in self.get_available_variables():
-            prediction = self.predict_single_variable(variable, features)
-            if prediction is not None:
-                predictions[variable] = prediction
-        
-        return predictions
-    
-    def predict(self, 
-                latitude: float, 
-                longitude: float, 
-                **kwargs) -> Dict[str, Any]:
-        """
-        Main prediction method.
-        
-        Args:
-            latitude: Latitude coordinate
-            longitude: Longitude coordinate
-            **kwargs: Additional parameters
-            
-        Returns:
-            Prediction results
-        """
-        try:
-            # Create basic features from coordinates
-            features = {
-                'latitude': latitude,
-                'longitude': longitude,
-                'lat_squared': latitude ** 2,
-                'lon_squared': longitude ** 2,
-                'lat_lon_interaction': latitude * longitude
+    # Agrupar modelos por ubicación
+    modelos_por_ubicacion = {}
+    for modelo in modelos_disponibles:
+        key = f"{modelo['latitude']}_{modelo['longitude']}_{modelo['timestamp']}"
+        if key not in modelos_por_ubicacion:
+            modelos_por_ubicacion[key] = {
+                'latitude': modelo['latitude'],
+                'longitude': modelo['longitude'],
+                'timestamp': modelo['timestamp'],
+                'models': []
             }
-            
-            # Add any additional features from kwargs
-            features.update(kwargs)
-            
-            # Get predictions for all variables
-            predictions = self.predict_all_variables(features)
-            
-            # Format results
-            result = {
-                'success': True,
-                'location': {
-                    'latitude': latitude,
-                    'longitude': longitude
-                },
-                'predictions': predictions,
-                'model_type': 'functional',
-                'models_used': len(predictions)
-            }
-            
-            logger.info(f"Functional prediction completed for ({latitude}, {longitude})")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error in functional prediction: {e}")
-            return {
-                'success': False,
-                'error': str(e),
-                'model_type': 'functional'
-            }
+        modelos_por_ubicacion[key]['models'].append(modelo)
     
-    def get_model_info(self, variable: str) -> Optional[str]:
-        """Get information about a specific model."""
-        matching_keys = [key for key in self.model_info.keys() if key.startswith(f"{variable}_")]
-        if matching_keys:
-            latest_key = sorted(matching_keys)[-1]
-            return self.model_info[latest_key]
-        return None
+    # Encontrar ubicación más cercana
+    mejor_distancia = float('inf')
+    mejor_ubicacion = None
     
-    def health_check(self) -> Dict[str, Any]:
-        """Perform a health check on the predictor."""
+    for key, ubicacion in modelos_por_ubicacion.items():
+        distancia = calcular_distancia_geografica(
+            lat_objetivo, lon_objetivo,
+            ubicacion['latitude'], ubicacion['longitude']
+        )
+        if distancia < mejor_distancia:
+            mejor_distancia = distancia
+            mejor_ubicacion = ubicacion
+    
+    # Verificar si la distancia es aceptable
+    if mejor_distancia <= distancia_maxima:
+        modelos_cargados = {}
+        for modelo in mejor_ubicacion['models']:
+            try:
+                model_obj = joblib.load(modelo['model_file'])
+                modelos_cargados[modelo['parameter']] = model_obj
+            except Exception as e:
+                pass
+        
         return {
-            'status': 'healthy',
-            'models_loaded': len(self.models),
-            'variables_available': self.get_available_variables(),
-            'predictor_type': 'functional'
+            'encontrado': True,
+            'distancia': mejor_distancia,
+            'ubicacion_modelo': (mejor_ubicacion['latitude'], mejor_ubicacion['longitude']),
+            'timestamp': mejor_ubicacion['timestamp'],
+            'modelos': modelos_cargados,
+            'necesita_entrenar': False
+        }
+    else:
+        return {
+            'encontrado': False,
+            'distancia': mejor_distancia,
+            'necesita_entrenar': True,
+            'coordenadas_objetivo': coordenadas
         }
 
-
-# Convenience function for direct usage
-def create_functional_predictor(models_dir: str = "/app/models/trained") -> FunctionalClimatePredictor:
-    """Create and return a functional climate predictor instance."""
-    return FunctionalClimatePredictor(models_dir)
-
-
-# For backward compatibility
-def predict_climate(latitude: float, 
-                   longitude: float, 
-                   models_dir: str = "/app/models/trained") -> Dict[str, Any]:
-    """
-    Standalone function for climate prediction.
+async def entrenar_modelo_nuevo(coordenadas,year):
+    """Entrenar un nuevo modelo usando las funciones de model_trainer y data_collector"""
+    from .data_collector import collect_data
+    from .model_trainer import train_climate_models, save_models, FEATURE_COLUMNS, TARGET_PARAMETERS
     
-    Args:
-        latitude: Latitude coordinate
-        longitude: Longitude coordinate
-        models_dir: Directory containing trained models
+    lat, lon = coordenadas
+    
+    try:
+        # Recolectar datos usando data_collector
+        df = await collect_data(coordenadas, year)
         
-    Returns:
-        Prediction results
-    """
-    predictor = create_functional_predictor(models_dir)
-    return predictor.predict(latitude, longitude)
+        if df.empty:
+            raise Exception("No se pudieron obtener datos históricos")
+        
+        # Preparar características usando la misma lógica que model_trainer
+        df_prepared = prepare_features_for_training(df, FEATURE_COLUMNS, TARGET_PARAMETERS)
+        
+        # Entrenar modelos usando model_trainer
+        modelos_entrenados, metrics = train_climate_models(df_prepared)
+        
+        if not modelos_entrenados:
+            raise Exception("No se pudieron entrenar modelos válidos")
+        
+        # Guardar modelos usando model_trainer
+        save_models(modelos_entrenados, coordenadas)
+        
+        return modelos_entrenados
+        
+    except Exception as e:
+        return {}
+
+def prepare_features_for_training(df, feature_columns, target_parameters):
+    """Preparar características para entrenamiento - compatible con model_trainer"""
+    df = df.copy()
+    
+    # Crear características temporales cíclicas (sin Season)
+    df['Month_sin'] = np.sin(2 * np.pi * df['Month'] / 12)
+    df['Month_cos'] = np.cos(2 * np.pi * df['Month'] / 12)
+    
+    # Limpiar datos: eliminar filas con demasiados NaN
+    df_clean = df.dropna(subset=target_parameters, thresh=len(target_parameters)//2)
+    
+    # Rellenar valores NaN en características de entrada
+    for feature in feature_columns:
+        if feature in df_clean.columns:
+            if df_clean[feature].isna().any():
+                if feature in ['Year', 'Month', 'Latitude', 'Longitude']:
+                    df_clean[feature] = df_clean[feature].fillna(df_clean[feature].median())
+                else:
+                    df_clean[feature] = df_clean[feature].fillna(0.0)
+    
+    # Rellenar valores NaN en parámetros objetivo
+    default_values = {
+        'Precipitation_mm_per_day': 1.0, 'Temperature_C': 23.0,
+        'Temperature_Max_C': 29.0, 'Temperature_Min_C': 17.0,
+        'Humidity_Percent': 65.0, 'Wind_Speed_ms': 2.0,
+        'Pressure_kPa': 80.0, 'Cloud_Cover_Percent': 50.0
+    }
+    
+    for param in target_parameters:
+        if param in df_clean.columns:
+            median_value = df_clean[param].median()
+            if pd.isna(median_value):
+                median_value = default_values.get(param, 0.0)
+            df_clean[param] = df_clean[param].fillna(median_value)
+    
+    # Verificar que no quedan NaN en características
+    df_clean[feature_columns] = df_clean[feature_columns].fillna(0.0)
+    
+    return df_clean
+
+# CACHÉ GLOBAL DE MODELOS PARA OPTIMIZAR VELOCIDAD
+_models_cache = {}
+_cache_timestamps = {}
+
+async def obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100, year=datetime.now().year):
+    """Función principal OPTIMIZADA: buscar modelo ideal o entrenar uno nuevo con CACHÉ"""
+    # Crear clave de caché basada en coordenadas redondeadas
+    cache_key = f"{round(coordenadas[0], 2)}_{round(coordenadas[1], 2)}"
+    
+    # Verificar si ya está en caché
+    if cache_key in _models_cache:
+        return _models_cache[cache_key]
+    
+    resultado = buscar_modelo_ideal(coordenadas, distancia_maxima)
+    
+    if resultado['encontrado']:
+        # Guardar en caché
+        _models_cache[cache_key] = resultado['modelos']
+        _cache_timestamps[cache_key] = datetime.now()
+        return resultado['modelos']
+    elif resultado['necesita_entrenar']:
+        models = await entrenar_modelo_nuevo(coordenadas, year)
+        if models:
+            # Guardar en caché
+            _models_cache[cache_key] = models
+            _cache_timestamps[cache_key] = datetime.now()
+            return models
+        else:
+            return {}
+    else:
+        return {}
+
+# Clase ClimatePredictor para compatibilidad
+class ClimatePredictor:
+    def __init__(self):
+        pass
+    
+    async def predict_for_date(self, lat, lon, target_date):
+        """Método de compatibilidad"""
+        coordenadas = (lat, lon)
+        modelos = await obtener_o_entrenar_modelo(coordenadas)
+        
+        if not modelos:
+            return {
+                "error": "No se pudieron obtener modelos para esta ubicación",
+                "date": target_date,
+                "latitude": lat,
+                "longitude": lon
+            }
+        
+        # Hacer predicción simple
+        from datetime import datetime
+        target_dt = datetime.strptime(target_date, "%Y-%m-%d")
+        year, month = target_dt.year, target_dt.month
+        
+        month_sin = np.sin(2 * np.pi * month / 12)
+        month_cos = np.cos(2 * np.pi * month / 12)
+        
+        features = pd.DataFrame([{
+            'Year': year, 'Month': month, 'Latitude': lat, 'Longitude': lon,
+            'Month_sin': month_sin, 'Month_cos': month_cos
+        }])
+        
+        predictions = {}
+        for param_name, model in modelos.items():
+            try:
+                pred_value = model.predict(features)[0]
+                predictions[param_name] = float(pred_value)
+            except:
+                predictions[param_name] = 0.0
+        
+        return {
+            "date": target_date,
+            "latitude": lat,
+            "longitude": lon,
+            "predictions": predictions
+        }

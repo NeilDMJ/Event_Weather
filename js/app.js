@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
         title: 'Generando Predicción ML',
         html: 'Analizando modelos para tu ubicación...<br><b></b>',
-        timer: 30000,  // 30 segundos máximo
+        timer: 10000,  // 30 segundos máximo
         timerProgressBar: true,
         allowOutsideClick: false,
         didOpen: () => {

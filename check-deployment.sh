@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔍 Verificando configuración para deployment en Vercel..."
+echo "Verificando configuración para deployment en Vercel..."
 echo "========================================================="
 
 PROJECT_DIR="/home/dante/Documents/Proyectos/event_weather"
@@ -23,9 +23,9 @@ all_files_exist=true
 
 for file in "${files_to_check[@]}"; do
     if [ -f "$file" ]; then
-        echo "✅ $file"
+        echo "$file"
     else
-        echo "❌ $file - FALTANTE"
+        echo "$file - FALTANTE"
         all_files_exist=false
     fi
 done

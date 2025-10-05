@@ -176,3 +176,9 @@ weatherAPI.getClimateData(17.8270, -97.8043, 2020, 2025)
         console.log('Datos históricos:', data);
     });
 */
+
+// Cambiar esta línea:
+// const BACKEND_API_URL = 'http://localhost:8000';
+
+// Por la URL de tu backend en producción:
+const BACKEND_API_URL = 'https://tu-backend.railway.app'; // o donde tengas el backend

@@ -160,7 +160,6 @@ async def predict_future_climate(
         coordenadas = (lat, lon)
         
         # Obtener o entrenar modelo para las coordenadas
-        print(f"🔍 Buscando/entrenando modelo para ({lat}, {lon})")
         modelos = await obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100)
         
         if not modelos:
@@ -189,7 +188,6 @@ async def predict_future_climate(
         
         # Hacer predicciones con cada modelo
         predicciones = {}
-        modelos_usados = []
         
         # Mapeo de nombres de parámetros para la respuesta
         param_names = {
@@ -227,10 +225,8 @@ async def predict_future_climate(
                 # Convertir nombre del parámetro
                 response_name = param_names.get(clean_param_name, clean_param_name.lower())
                 predicciones[response_name] = round(float(pred_value), 3)
-                modelos_usados.append(param_model_name)
                 
             except Exception as e:
-                print(f"Error prediciendo {param_model_name}: {e}")
                 # Usar valor por defecto solo si no hay predicción
                 clean_param_name = param_model_name
                 if '_20251004' in clean_param_name:
@@ -245,7 +241,7 @@ async def predict_future_climate(
             if response_name not in predicciones:
                 predicciones[response_name] = default_val
         
-        # Preparar respuesta
+        # Preparar respuesta sin model_info
         response = {
             "success": True,
             "location": {
@@ -254,22 +250,15 @@ async def predict_future_climate(
             },
             "prediction_date": date,
             "predictions": predicciones,
-            "model_info": {
-                "models_used": modelos_usados,
-                "total_models": len(modelos),
-                "prediction_method": "gradient_boosting_regressor"
-            },
             "generated_at": datetime.now().isoformat()
         }
         
-        print(f"✅ Predicción completada para ({lat}, {lon}) - {date}")
         return response
         
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        print(f"❌ Error en predicción: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error interno del servidor durante la predicción: {str(e)}"

@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- VARIABLES GLOBALES ---
     let map;
     let marker;
-    const API_KEY = '95d485525131456b8e1231409250410'; // <-- ¡IMPORTANTE! Reemplaza esto
+    const API_KEY = '95d485525131456b8e1231409250410';
     let currentForecastData = null;
 
     // --- FUNCIÓN PARA OBTENER LA FECHA DE HOY EN FORMATO YYYY-MM-DD ---
@@ -56,62 +56,79 @@ document.addEventListener('DOMContentLoaded', function() {
         marker = L.marker([lat, lon]).addTo(map).bindPopup(cityName).openPopup();
         locationNameElement.textContent = cityName;
     }
+    
     function updateMap(lat, lon, cityName) {
         map.setView([lat, lon], 13);
         marker.setLatLng([lat, lon]).setPopupContent(cityName).openPopup();
         locationNameElement.textContent = cityName;
     }
 
-    // --- FUNCIÓN PARA ACTUALIZAR TODA LA UI DEL CLIMA ---
+    // --- FUNCIÓN PARA ACTUALIZAR TODA LA UI DEL CLIMA (CON 6 DÍAS POSTERIORES) ---
     function updateWeatherUI(forecastData, selectedDateStr) {
         const forecastDays = forecastData.forecast.forecastday;
         
-        // 1. Actualizar la tarjeta principal
-        const selectedDayData = forecastDays.find(day => day.date === selectedDateStr) || forecastDays[0];
-        const dateObj = new Date(selectedDayData.date + 'T12:00:00'); // Usar T12:00:00 para evitar problemas de zona horaria
+        // Encontrar el índice del día seleccionado
+        let selectedIndex = forecastDays.findIndex(day => day.date === selectedDateStr);
+        if (selectedIndex === -1) {
+            console.warn("La fecha seleccionada está fuera del rango de pronóstico. Mostrando el primer día.");
+            selectedIndex = 0;
+            dateInput.value = forecastDays[0].date;
+        }
+
+        const selectedDayData = forecastDays[selectedIndex];
+        const dateObj = new Date(selectedDayData.date + 'T12:00:00');
         const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
 
+        // 1. Actualizar la tarjeta principal (día actual seleccionado)
         mainCard.day.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         mainCard.date.textContent = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
         mainCard.temp.textContent = `${Math.round(selectedDayData.day.avgtemp_c)}°`;
-        mainCard.icon.src = `https:${selectedDayData.day.condition.icon}`;
+        mainCard.icon.src = selectedDayData.day.condition.icon;
         mainCard.icon.alt = selectedDayData.day.condition.text;
         mainCard.realFeel.textContent = `Sensación: ${Math.round(selectedDayData.day.avgtemp_c)}°`;
         mainCard.wind.textContent = `Viento: ${selectedDayData.day.maxwind_kph} km/h`;
         mainCard.pressure.textContent = `Presión: ${forecastData.current.pressure_mb}mb`;
         mainCard.humidity.textContent = `Humedad: ${selectedDayData.day.avghumidity}%`;
 
-        // 2. Actualizar las 5 mini-tarjetas (Hoy + 4 días)
-        for (let i = 0; i < 5; i++) {
+        // 2. Actualizar las 6 mini-cards con los SIGUIENTES 6 días posteriores al seleccionado
+        for (let i = 0; i < 6; i++) {
+            const cardIndex = selectedIndex + 1 + i; // Comienza desde el día SIGUIENTE al seleccionado
             const miniCard = miniCards[i];
             
-            if (i < forecastDays.length) {
-                const dayData = forecastDays[i];
+            // Ocultar por defecto
+            miniCard.style.display = 'none';
+            miniCard.classList.remove('selected');
+            miniCard.onclick = null;
+
+            // Si el índice es válido Y está dentro del rango del forecast, mostrar la card
+            if (cardIndex >= 0 && cardIndex < forecastDays.length) {
+                const dayData = forecastDays[cardIndex];
                 const miniDateObj = new Date(dayData.date + 'T12:00:00');
                 
                 miniCard.querySelector('header h2').textContent = miniDateObj.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.', '');
-                miniCard.querySelector('img').src = `https:${dayData.day.condition.icon}`;
+                miniCard.querySelector('img').src = dayData.day.condition.icon;
+                miniCard.querySelector('img').alt = dayData.day.condition.text;
                 miniCard.querySelector('footer h3').textContent = `${Math.round(dayData.day.avgtemp_c)}°`;
+                miniCard.style.display = 'flex';
 
-                // Resaltar la tarjeta seleccionada
-                if (dayData.date === selectedDateStr) {
-                    miniCard.classList.add('selected');
-                } else {
-                    miniCard.classList.remove('selected');
-                }
-
-                // Hacer la tarjeta clickeable
+                // Hacer la tarjeta clickeable - al hacer clic, ese día se convierte en el principal
                 miniCard.onclick = () => {
                     dateInput.value = dayData.date;
                     updateWeatherUI(currentForecastData, dayData.date);
                 };
             }
         }
+        
+        // Actualizar los límites del input date basado en los datos disponibles
+        if (forecastDays.length > 0) {
+            dateInput.min = forecastDays[0].date;
+            dateInput.max = forecastDays[forecastDays.length - 1].date;
+        }
     }
 
     // --- FUNCIÓN PRINCIPAL PARA OBTENER CLIMA ---
     async function getWeatherForCity(cityOrCoords) {
-        const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityOrCoords}&days=5&aqi=no&alerts=no&lang=es`;
+        const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityOrCoords}&days=14&aqi=no&alerts=no&lang=es`;
         
         try {
             const response = await fetch(apiUrl);
@@ -126,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Error al buscar la ubicación:', error);
-            alert('Ubicación no encontrada.');
+            alert('Ubicación no encontrada. Por favor, intenta con otro nombre.');
         }
     }
 
@@ -146,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error fetching suggestions:', error);
         }
     }
+    
     function displaySuggestions(suggestions) {
         if (suggestions.length === 0) {
             suggestionsContainer.style.display = 'none';
@@ -165,6 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         suggestionsContainer.style.display = 'block';
     }
+    
     citySearchInput.addEventListener('input', () => getSearchSuggestions(citySearchInput.value));
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-wrapper')) {
@@ -184,13 +203,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dateInput.addEventListener('change', () => {
         if (currentForecastData) {
-            updateWeatherUI(currentForecastData, dateInput.value);
+            const forecastDays = currentForecastData.forecast.forecastday;
+            const selectedDate = dateInput.value;
+            
+            // Verificar si la fecha seleccionada está dentro del rango disponible
+            const dateExists = forecastDays.some(day => day.date === selectedDate);
+            
+            if (dateExists) {
+                updateWeatherUI(currentForecastData, selectedDate);
+            } else {
+                alert('La fecha seleccionada no está disponible. Por favor, selecciona una fecha dentro del rango permitido.');
+                dateInput.value = forecastDays[0].date;
+                updateWeatherUI(currentForecastData, forecastDays[0].date);
+            }
         }
     });
 
     // --- INICIALIZACIÓN DEL GRÁFICO ---
     const ctx = document.getElementById('summaryChart');
-    new Chart(ctx, { type: 'line', data: { labels: ['4 PM','5 PM','6 PM','7 PM','8 PM','9 PM','10 PM'], datasets: [{ label: 'Temperatura (°C)', data: [24,24,23,22,21,20,19], fill: true, backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', tension: 0.4, pointBackgroundColor: '#fff', pointBorderColor: 'rgba(54, 162, 235, 1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'var(--text-muted)' } }, x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'var(--text-muted)' } } }, plugins: { legend: { display: false } } } });
+    new Chart(ctx, { 
+        type: 'line', 
+        data: { 
+            labels: ['4 PM','5 PM','6 PM','7 PM','8 PM','9 PM','10 PM'], 
+            datasets: [{ 
+                label: 'Temperatura (°C)', 
+                data: [24,24,23,22,21,20,19], 
+                fill: true, 
+                backgroundColor: 'rgba(54, 162, 235, 0.2)', 
+                borderColor: 'rgba(54, 162, 235, 1)', 
+                tension: 0.4, 
+                pointBackgroundColor: '#fff', 
+                pointBorderColor: 'rgba(54, 162, 235, 1)' 
+            }] 
+        }, 
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            scales: { 
+                y: { 
+                    beginAtZero: false, 
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
+                    ticks: { color: 'var(--text-muted)' } 
+                }, 
+                x: { 
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
+                    ticks: { color: 'var(--text-muted)' } 
+                } 
+            }, 
+            plugins: { 
+                legend: { display: false } 
+            } 
+        } 
+    });
 
     // --- FUNCIÓN DE INICIALIZACIÓN ---
     function initializeApp() {
@@ -201,16 +265,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     getWeatherForCity(`${position.coords.latitude},${position.coords.longitude}`);
                 },
                 () => {
-                    console.warn("User denied geolocation. Loading default location.");
+                    console.warn("El usuario denegó la geolocalización. Cargando ubicación por defecto.");
                     getWeatherForCity('Huajuapan de León');
                 }
             );
         } else {
-            console.error("Geolocation is not supported by this browser.");
+            console.error("La geolocalización no es soportada por este navegador.");
             getWeatherForCity('Huajuapan de León');
         }
     }
 
     initializeApp();
 });
-

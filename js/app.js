@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let marker;
     const API_KEY = '95d485525131456b8e1231409250410';
     let currentForecastData = null;
+    let newSummaryChartInstance = null;
 
     // --- FUNCIÓN PARA OBTENER LA FECHA DE HOY EN FORMATO YYYY-MM-DD ---
     function getTodayDateString() {
@@ -110,10 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 miniCard.style.display = 'flex';
 
                 // RESTAURADO: Hacer la tarjeta clickeable
-                miniCard.onclick = () => {
-                    dateInput.value = dayData.date;
-                    updateWeatherUI(currentForecastData, dayData.date);
-                };
             }
         }
         
@@ -140,10 +137,81 @@ document.addEventListener('DOMContentLoaded', function() {
             initMap(lat, lon, `${name}, ${region}`);
             updateWeatherUI(currentForecastData, dateInput.value);
 
+            // Enviar datos al backend para obtener predicción/IA cada vez que cargamos una ubicación
+            // Formato esperado por la API backend: /predict?lat={lat}&lon={lon}&date={YYYY-MM-DD}
+            try {
+                await sendDataToApi({ date: dateInput.value, name, region, country: data.location.country, lat, lon });
+            } catch (e) {
+                console.error('Error enviando datos al backend:', e);
+            }
+
         } catch (error) {
             console.error('Error al buscar la ubicación:', error);
             alert('Ubicación no encontrada. Por favor, intenta con otro nombre.');
         }
+    }
+
+    // --- FUNCIONES PARA COMUNICAR CON LA API BACKEND ---
+    async function sendDataToApi({ date, name, region, country, lat, lon }) {
+        // Normalizamos lat lon numéricos
+        const url = new URL('http://localhost:8000/predict');
+        url.searchParams.append('lat', lat);
+        url.searchParams.append('lon', lon);
+        url.searchParams.append('date', date);
+
+        const aiPromptEl = document.getElementById('ai-prompt');
+        aiPromptEl.textContent = 'Generando predicción...';
+
+        const response = await fetch(url.toString(), { method: 'GET' });
+        if (!response.ok) {
+            const errorText = await response.text();
+            aiPromptEl.textContent = `Error: ${response.status} - ${errorText}`;
+            throw new Error(`API responded with ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Mostrar un prompt resumido (simulando IA) en la sección new-chart-card
+        // Construimos un texto legible con algunos campos
+        const preds = result.predictions || {};
+        const lines = [];
+        lines.push(`Predicción para ${name}, ${region || country} el ${result.prediction_date}:`);
+        for (const [k, v] of Object.entries(preds)) {
+            lines.push(`- ${k.replace(/_/g, ' ')}: ${v}`);
+        }
+        lines.push(`(Generado: ${new Date(result.generated_at).toLocaleString('es-ES')})`);
+        aiPromptEl.textContent = lines.join('\n');
+
+        // Actualizar gráfico newSummaryChart con al menos temperatura y precipitación si existen
+        const labels = ['Predicción'];
+        const datasets = [];
+        if ('temperature_c' in preds) {
+            datasets.push({ label: 'Temp (°C)', data: [preds.temperature_c], borderColor: 'rgba(255,99,132,1)', backgroundColor: 'rgba(255,99,132,0.2)' });
+        }
+        if ('precipitation_mm_per_day' in preds) {
+            datasets.push({ label: 'Precipitación (mm/d)', data: [preds.precipitation_mm_per_day], borderColor: 'rgba(54,162,235,1)', backgroundColor: 'rgba(54,162,235,0.2)' });
+        }
+        if (datasets.length === 0) {
+            // Datos alternativos: mostrar humedad y nubosidad si no hay temp/precip
+            if ('humidity_percent' in preds) datasets.push({ label: 'Humedad (%)', data: [preds.humidity_percent], borderColor: 'rgba(75,192,192,1)', backgroundColor: 'rgba(75,192,192,0.2)' });
+            if ('cloud_cover_percent' in preds) datasets.push({ label: 'Nubosidad (%)', data: [preds.cloud_cover_percent], borderColor: 'rgba(201,203,207,1)', backgroundColor: 'rgba(201,203,207,0.2)' });
+        }
+
+        const ctx = document.getElementById('newSummaryChart');
+        if (!ctx) return;
+
+        const config = { type: 'bar', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false } };
+
+        if (newSummaryChartInstance) {
+            // Reemplazar los datos y actualizar
+            newSummaryChartInstance.data = config.data;
+            newSummaryChartInstance.options = config.options;
+            newSummaryChartInstance.update();
+        } else {
+            newSummaryChartInstance = new Chart(ctx, config);
+        }
+
+        return result;
     }
 
     // --- LÓGICA PARA SUGERENCIAS DE BÚSQUEDA ---
@@ -199,33 +267,6 @@ document.addEventListener('DOMContentLoaded', function() {
             suggestionsContainer.style.display = 'none';
         }
     });
-
-    // Listener para el botón de descarga (descarga currentForecastData como JSON)
-    const downloadBtn = document.getElementById('download-btn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', () => {
-            if (!currentForecastData) {
-                alert('No hay datos cargados para descargar.');
-                return;
-            }
-
-            // Construir nombre de archivo: ciudad_fecha.json
-            const loc = currentForecastData.location || {};
-            const city = (loc.name || 'location').replace(/[^a-z0-9-_]/gi, '_');
-            const dateStr = (currentForecastData.location && currentForecastData.forecast && currentForecastData.forecast.forecastday && currentForecastData.forecast.forecastday[0]) ? currentForecastData.forecast.forecastday[0].date : new Date().toISOString().slice(0,10);
-            const filename = `${city}_${dateStr}.json`;
-
-            const blob = new Blob([JSON.stringify(currentForecastData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        });
-    }
 
     // RESTAURADO: Event listener para el calendario
     dateInput.addEventListener('change', () => {

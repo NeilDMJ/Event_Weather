@@ -1,6 +1,6 @@
 -- Schema para base de datos de modelos climáticos
 -- PostgreSQL
---Funcional
+--Funcional 
 
 -- Tabla principal de modelos
 CREATE TABLE trained_models (

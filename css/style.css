@@ -118,3 +118,58 @@ body {
 /* Media query (sin cambios) */
 @media (max-width: 1200px) { /* ... */ }
 
+/* --- TEMA CLARO --- */
+body[data-theme="light"] {
+    --background: #F5F5F5;
+    --bg-secondary: #FFFFFF;
+    --text-primary: #1E1E1E;
+    --text-muted: #6B6B6B;
+    --card-color: #FFFFFF;
+    --border-color: #E0E0E0;
+    --selected-bg: #007BFF;
+}
+
+/* Ajustes específicos para el tema claro */
+body[data-theme="light"] .icon-button svg {
+    fill: #1E1E1E !important;
+}
+
+/* Icono de usuario usa stroke en lugar de fill */
+body[data-theme="light"] .user-login svg circle,
+body[data-theme="light"] .user-login svg path {
+    stroke: #1E1E1E;
+}
+
+body[data-theme="light"] .location-display svg path {
+    fill: #1E1E1E;
+}
+
+body[data-theme="light"] .search-bar svg path {
+    fill: #1E1E1E;
+}
+
+body[data-theme="light"] .search-bar input {
+    color: #1E1E1E;
+}
+
+body[data-theme="light"] .search-bar input::placeholder {
+    color: #6B6B6B;
+}
+
+body[data-theme="light"] #date {
+    color-scheme: light;
+}
+
+body[data-theme="light"] .main-header {
+    border-bottom: 1px solid #E0E0E0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+body[data-theme="light"] .card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+body[data-theme="light"] .mini-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+

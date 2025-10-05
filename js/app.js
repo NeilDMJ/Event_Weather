@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- VARIABLES GLOBALES ---
     let map;
     let marker;
+    let currentTileLayer;
     const API_KEY = '95d485525131456b8e1231409250410';
     let currentForecastData = null;
     let newSummaryChartInstance = null;
@@ -45,17 +46,34 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- LÓGICA DEL MAPA ---
+    function getMapTileUrl() {
+        const theme = document.body.getAttribute('data-theme') || 'dark';
+        if (theme === 'light') {
+            return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        }
+        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    }
+
     function initMap(lat, lon, cityName) {
         if (map) {
             updateMap(lat, lon, cityName);
             return;
         }
         map = L.map('mi_mapa').setView([lat, lon], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        currentTileLayer = L.tileLayer(getMapTileUrl(), {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         }).addTo(map);
         marker = L.marker([lat, lon]).addTo(map).bindPopup(cityName).openPopup();
         locationNameElement.textContent = cityName;
+    }
+    
+    function updateMapTheme() {
+        if (map && currentTileLayer) {
+            map.removeLayer(currentTileLayer);
+            currentTileLayer = L.tileLayer(getMapTileUrl(), {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            }).addTo(map);
+        }
     }
     
     function updateMap(lat, lon, cityName) {
@@ -306,5 +324,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initializeApp();
+
+    // --- FUNCIONALIDAD DE CAMBIO DE TEMA ---
+    const themeToggleBtn = document.querySelector('.theme-switcher');
+    
+    // Cargar tema guardado o usar el tema oscuro por defecto
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    document.body.setAttribute('data-theme', currentTheme);
+    
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Actualizar el mapa con el nuevo tema
+        updateMapTheme();
+    });
 });
 

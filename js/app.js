@@ -352,4 +352,157 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar el mapa con el nuevo tema
         updateMapTheme();
     });
+
+    // --- LOGIN / REGISTER MODAL SETUP ---
+    // Append modal markup to body
+    (function injectLoginModal(){
+        const modalHtml = `
+        <div id="login-backdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
+          <div class="login-modal" role="document">
+            <h3 id="login-title">Acceder</h3>
+            <div>
+            <label for="login-email">Correo</label>
+            <input id="login-email" type="email" placeholder="tu@correo.com">
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" type="password" placeholder="Contraseña">
+            </div>
+            <div class="login-actions">
+            <button id="login-submit" class="btn btn-primary">Entrar</button>
+            <button id="login-switch" class="btn btn-ghost">Crear cuenta</button>
+            <button id="login-close" class="btn btn-ghost">Cerrar</button>
+            </div>
+            <p id="login-error" class="login-error"></p>
+            <p id="login-success" class="login-success"></p>
+        </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    })();
+
+    const loginBtn = document.getElementById('user-login-btn');
+    const loginBackdrop = document.getElementById('login-backdrop');
+    const loginClose = document.getElementById('login-close');
+    const loginSwitch = document.getElementById('login-switch');
+    const loginSubmit = document.getElementById('login-submit');
+    const loginTitle = document.getElementById('login-title');
+    const loginError = document.getElementById('login-error');
+    const loginSuccess = document.getElementById('login-success');
+    const loginEmail = document.getElementById('login-email');
+    const loginPassword = document.getElementById('login-password');
+    const userNameSpan = document.getElementById('user-name');
+
+    let isRegisterMode = false;
+
+    function openLoginModal() {
+        loginBackdrop.classList.add('active');
+        loginBackdrop.setAttribute('aria-hidden', 'false');
+        loginEmail.focus();
+        loginError.style.display = 'none';
+        loginSuccess.style.display = 'none';
+    }
+
+    function closeLoginModal() {
+        loginBackdrop.classList.remove('active');
+        loginBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    loginBtn.addEventListener('click', () => {
+        const stored = localStorage.getItem('ew_user');
+        if (stored) {
+            const u = JSON.parse(stored);
+            userNameSpan.textContent = u.email.split('@')[0];
+            userNameSpan.style.display = 'inline-block';
+            // Offer to logout if already logged
+            if (!confirm(`Cerrar sesión de ${u.email}?`)) return;
+            localStorage.removeItem('ew_user');
+            userNameSpan.style.display = 'none';
+            alert('Sesión cerrada');
+            return;
+        }
+        openLoginModal();
+    });
+
+    loginClose.addEventListener('click', closeLoginModal);
+    loginBackdrop.addEventListener('click', (e)=>{ if (e.target === loginBackdrop) closeLoginModal(); });
+
+    loginSwitch.addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode;
+        loginTitle.textContent = isRegisterMode ? 'Crear cuenta' : 'Acceder';
+        loginSwitch.textContent = isRegisterMode ? '¿Ya tienes cuenta? Entrar' : 'Crear cuenta';
+        loginSubmit.textContent = isRegisterMode ? 'Registrar' : 'Entrar';
+        loginError.style.display = 'none';
+        loginSuccess.style.display = 'none';
+    });
+
+    async function attemptBackendAuth(path, body) {
+        try {
+            const url = new URL(`http://localhost:8000/${path}`);
+            const resp = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+            if (!resp.ok) throw new Error(await resp.text());
+            return await resp.json();
+        } catch (err) {
+            console.warn('Backend auth failed:', err);
+            return null;
+        }
+    }
+
+    loginSubmit.addEventListener('click', async () => {
+        loginError.style.display = 'none';
+        loginSuccess.style.display = 'none';
+        const email = loginEmail.value.trim();
+        const pwd = loginPassword.value;
+        if (!email || !pwd) { loginError.textContent = 'Rellena correo y contraseña.'; loginError.style.display = 'block'; return; }
+
+        if (isRegisterMode) {
+            // Try backend register then fallback to localStorage
+            const res = await attemptBackendAuth('register', { email, password: pwd });
+            if (res && res.success) {
+                loginSuccess.textContent = 'Cuenta creada. Sesión iniciada.'; loginSuccess.style.display = 'block';
+                localStorage.setItem('ew_user', JSON.stringify({ email }));
+                userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+                setTimeout(closeLoginModal, 900);
+                return;
+            }
+            // fallback: save to localStorage users list
+            const users = JSON.parse(localStorage.getItem('ew_users') || '{}');
+            if (users[email]) { loginError.textContent = 'Usuario ya existe (fallback).'; loginError.style.display = 'block'; return; }
+            users[email] = { password: pwd };
+            localStorage.setItem('ew_users', JSON.stringify(users));
+            localStorage.setItem('ew_user', JSON.stringify({ email }));
+            loginSuccess.textContent = 'Cuenta creada (local). Sesión iniciada.'; loginSuccess.style.display = 'block';
+            userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+            setTimeout(closeLoginModal, 900);
+            return;
+        } else {
+            // Login flow: try backend, then fallback
+            const res = await attemptBackendAuth('login', { email, password: pwd });
+            if (res && res.success) {
+                localStorage.setItem('ew_user', JSON.stringify({ email }));
+                loginSuccess.textContent = 'Sesión iniciada.'; loginSuccess.style.display = 'block';
+                userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+                setTimeout(closeLoginModal, 700);
+                return;
+            }
+            // Fallback: check localStorage
+            const users = JSON.parse(localStorage.getItem('ew_users') || '{}');
+            if (users[email] && users[email].password === pwd) {
+                localStorage.setItem('ew_user', JSON.stringify({ email }));
+                loginSuccess.textContent = 'Sesión iniciada (local).'; loginSuccess.style.display = 'block';
+                userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+                setTimeout(closeLoginModal, 700);
+                return;
+            }
+            loginError.textContent = 'Credenciales inválidas.'; loginError.style.display = 'block';
+        }
+    });
+
+    // If user already logged in show name
+    (function restoreUser(){
+        const stored = localStorage.getItem('ew_user');
+        if (stored) {
+            const u = JSON.parse(stored);
+            userNameSpan.textContent = u.email.split('@')[0];
+            userNameSpan.style.display = 'inline-block';
+        }
+    })();
 });

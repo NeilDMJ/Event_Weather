@@ -3,7 +3,6 @@ import numpy as np
 import joblib
 import json
 import os
-import glob
 from datetime import datetime, timedelta
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
@@ -14,13 +13,9 @@ from services.nasapower import get_complete_climate_projection
 
 class ClimatePredictor:
     def __init__(self):
-        """
-        Predictor de clima que usa data_collector y model_trainer
-        para entrenar modelos específicos y predecir todos los parámetros climáticos
-        """
         self.models = {}  # Modelos para cada parámetro
         self.feature_columns = [
-            'Year', 'Month', 'Latitude', 'Longitude', 'Month_sin', 'Month_cos', 'Season'
+            'Month', 'Month_sin', 'Month_cos', 'Season'
         ]
         self.target_parameters = [
             'Precipitation_mm_per_day',
@@ -34,118 +29,77 @@ class ClimatePredictor:
         ]
         
     async def collect_training_data(self, lat, lon, target_date):
-        """Recolectar datos de entrenamiento para la ubicación y fecha especificadas"""
-        print(f"Recolectando datos para entrenamiento...")
+        """Recolectar 5 años de datos históricos para un solo punto"""
+        print(f"Recolectando 5 años de datos históricos para ({lat}, {lon})...")
         
-        # Parsear fecha objetivo
-        target_dt = datetime.strptime(target_date, "%Y-%m-%d")
-        
-        # Determinar rango de años para obtener datos históricos
+        # Calcular año de inicio (5 años antes del año actual)
         current_year = datetime.now().year
-        start_year = max(2010, current_year - 10)  
-        end_year = current_year
+        start_year = current_year - 5
+        end_year = current_year - 1  # Año anterior al actual
         
-        print(f"Obteniendo datos históricos: {start_year}-{end_year}")
+        print(f"Obteniendo datos desde {start_year} hasta {end_year}")
         
-        # Ubicaciones para entrenamiento (ubicación objetivo + ubicaciones cercanas)
-        training_locations = [
-            (lat, lon),                    # Ubicación objetivo
-        ]
-        
-        all_data = []
-        
-        for train_lat, train_lon in training_locations:
-            try:
-                # Obtener datos climáticos completos
-                climate_data = await get_complete_climate_projection(train_lat, train_lon, start_year, end_year)
+        try:
+            # Obtener datos históricos directamente de NASA POWER
+            data = await get_complete_climate_projection(lat, lon, start_year, end_year)
+            
+            if "parameters" not in data or not data["parameters"]:
+                raise Exception("No se pudieron obtener datos históricos")
+            
+            # Procesar los datos en formato DataFrame
+            records_list = []
+            parameters = data["parameters"]
+            
+            # Usar PRECTOTCORR como referencia para las fechas
+            if "PRECTOTCORR" in parameters and parameters["PRECTOTCORR"]["data"]:
+                dates = list(parameters["PRECTOTCORR"]["data"].keys())
                 
-                if "parameters" not in climate_data or not climate_data["parameters"]:
-                    continue
-                
-                # Convertir a DataFrame
-                df_location = self._parse_nasa_data(climate_data, train_lat, train_lon)
-                
-                if not df_location.empty:
-                    all_data.append(df_location)
-                    print(f"Datos obtenidos para ({train_lat:.3f}, {train_lon:.3f}): {len(df_location)} registros")
+                for date_str in dates:
+                    year = int(date_str[:4])
+                    month = int(date_str[4:6])
                     
-            except Exception as e:
-                print(f"Error obteniendo datos para ({train_lat:.3f}, {train_lon:.3f}): {e}")
-                continue
-        
-        if not all_data:
-            raise Exception("No se pudieron obtener datos de entrenamiento")
-        
-        # Combinar todos los datos
-        combined_df = pd.concat(all_data, ignore_index=True)
-        print(f"Total de datos recolectados: {len(combined_df)} registros")
-        
-        return combined_df
-    
-    def _parse_nasa_data(self, climate_data, lat, lon):
-        """Convertir datos de NASA POWER a DataFrame"""
-        parameters = climate_data.get("parameters", {})
-        
-        if not parameters or "PRECTOTCORR" not in parameters:
-            return pd.DataFrame()
-        
-        dates = list(parameters["PRECTOTCORR"]["data"].keys())
-        records = []
-        
-        for date_str in dates:
-            try:
-                if len(date_str) != 6 or not date_str.isdigit():
-                    continue
+                    record = {
+                        "Date": date_str,
+                        "Year": year,
+                        "Month": month,
+                        "Latitude": lat,
+                        "Longitude": lon
+                    }
                     
-                year = int(date_str[:4])
-                month = int(date_str[4:6])
+                    # Mapear parámetros NASA a nombres descriptivos
+                    param_mapping = {
+                        "PRECTOTCORR": "Precipitation_mm_per_day",
+                        "T2M": "Temperature_C",
+                        "T2M_MAX": "Temperature_Max_C",
+                        "T2M_MIN": "Temperature_Min_C",
+                        "RH2M": "Humidity_Percent",
+                        "WS2M": "Wind_Speed_ms",
+                        "PS": "Pressure_kPa",
+                        "CLOUD_AMT": "Cloud_Cover_Percent"
+                    }
+                    
+                    # Agregar cada parámetro climático
+                    for nasa_param, column_name in param_mapping.items():
+                        if nasa_param in parameters and date_str in parameters[nasa_param]["data"]:
+                            record[column_name] = parameters[nasa_param]["data"][date_str]
+                    
+                    records_list.append(record)
                 
-                if year < 1900 or year > 2100 or month < 1 or month > 12:
-                    continue
+                combined_df = pd.DataFrame(records_list)
+                print(f"Datos históricos recolectados: {len(combined_df)} registros para {end_year - start_year + 1} años")
+                return combined_df
+            else:
+                raise Exception("No se encontraron datos de precipitación")
                 
-                record = {
-                    "Date": f"{year}-{month:02d}",
-                    "Year": year,
-                    "Month": month,
-                    "Latitude": lat,
-                    "Longitude": lon
-                }
-                
-                # Mapeo de parámetros NASA POWER a nombres de columnas
-                param_mapping = {
-                    "PRECTOTCORR": "Precipitation_mm_per_day",
-                    "T2M": "Temperature_C",
-                    "T2M_MAX": "Temperature_Max_C", 
-                    "T2M_MIN": "Temperature_Min_C",
-                    "RH2M": "Humidity_Percent",
-                    "WS2M": "Wind_Speed_ms",
-                    "PS": "Pressure_kPa",
-                    "CLOUD_AMT": "Cloud_Cover_Percent"
-                }
-                
-                for nasa_param, col_name in param_mapping.items():
-                    if nasa_param in parameters and date_str in parameters[nasa_param]["data"]:
-                        value = parameters[nasa_param]["data"][date_str]
-                        record[col_name] = value if value != -999.0 else np.nan
-                    else:
-                        record[col_name] = np.nan
-                
-                records.append(record)
-                
-            except (ValueError, IndexError):
-                continue
-        
-        if not records:
-            return pd.DataFrame()
-        
-        df = pd.DataFrame(records)
-        return df
+        except Exception as e:
+            print(f"Error recolectando datos: {e}")
+            raise
     
     def prepare_features(self, df):
-        
+        """Preparar características para entrenamiento - simplificado para un solo punto"""
         df = df.copy()
         
-        # Crear características temporales
+        # Crear características temporales (solo basadas en mes)
         df['Month_sin'] = np.sin(2 * np.pi * df['Month'] / 12)
         df['Month_cos'] = np.cos(2 * np.pi * df['Month'] / 12)
         
@@ -157,10 +111,21 @@ class ClimatePredictor:
             9: 3, 10: 3, 11: 3  # Otoño
         })
         
-        # Limpiar datos: eliminar filas con demasiados NaN
+        # Limpiar datos: eliminar filas con demasiados NaN en target_parameters
         df_clean = df.dropna(subset=self.target_parameters, thresh=len(self.target_parameters)//2)
         
-        # Rellenar valores NaN restantes con medianas
+        # Rellenar valores NaN en características de entrada
+        for feature in self.feature_columns:
+            if feature in df_clean.columns:
+                if df_clean[feature].isna().any():
+                    # Para características numéricas, usar mediana
+                    if feature in ['Month']:
+                        df_clean[feature] = df_clean[feature].fillna(df_clean[feature].median())
+                    else:
+                        # Para características calculadas, recalcular si es necesario
+                        df_clean[feature] = df_clean[feature].fillna(0.0)
+        
+        # Rellenar valores NaN en parámetros objetivo
         for param in self.target_parameters:
             if param in df_clean.columns:
                 median_value = df_clean[param].median()
@@ -180,37 +145,51 @@ class ClimatePredictor:
                 
                 df_clean[param] = df_clean[param].fillna(median_value)
         
-        print(f"Datos preparados: {len(df_clean)} registros limpios")
+        # Verificar que no quedan NaN en las características de entrada
+        X_features = df_clean[self.feature_columns]
+        if X_features.isna().any().any():
+            print("⚠️  Advertencia: Aún hay valores NaN en características de entrada")
+            # Rellenar cualquier NaN restante con 0
+            df_clean[self.feature_columns] = df_clean[self.feature_columns].fillna(0.0)
+        
+        print(f"Datos preparados: {len(df_clean)} registros limpios de {len(df)} originales")
+        print(f"Características de entrada: {self.feature_columns}")
         return df_clean
     
     def train_models(self, df):
-        """Entrenar un modelo para cada parámetro climático"""
+        """Entrenar modelos simplificados para cada parámetro climático"""
         print(f"Entrenando modelos para {len(self.target_parameters)} parámetros...")
         
-        # Preparar características de entrada
+        # Preparar características de entrada (solo temporales, sin coordenadas)
         X = df[self.feature_columns]
         
         model_metrics = {}
         
         for param in self.target_parameters:
             if param not in df.columns:
-                print(f"Parámetro {param} no encontrado en datos")
+                print(f"  Parámetro {param} no encontrado en datos")
                 continue
                 
             try:
                 # Preparar datos para este parámetro
                 y = df[param]
                 
-                # Dividir datos
+                # Verificar que hay suficientes datos
+                if len(y) < 20:
+                    print(f"  {param}: Insuficientes datos ({len(y)} muestras)")
+                    continue
+                
+                # Dividir datos (80% entrenamiento, 20% prueba)
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y, test_size=0.2, random_state=42, shuffle=True
                 )
                 
-                # Entrenar modelo
+                # Entrenar modelo más simple para datos limitados
                 model = GradientBoostingRegressor(
-                    n_estimators=50,  # Menos estimadores para velocidad
+                    n_estimators=30,      # Menos estimadores
                     learning_rate=0.1,
-                    max_depth=4,
+                    max_depth=3,          # Menor profundidad
+                    min_samples_split=5,  # Mínimo para dividir
                     random_state=42
                 )
                 
@@ -229,13 +208,13 @@ class ClimatePredictor:
                     'samples': len(X_train)
                 }
                 
-                print(f"    {param}: R²={r2:.3f}, MAE={mae:.3f}")
+                print(f"  {param}: R²={r2:.3f}, MAE={mae:.3f}, Muestras={len(X_train)}")
                 
             except Exception as e:
-                print(f"    Error entrenando {param}: {e}")
+                print(f"  Error entrenando {param}: {e}")
                 continue
         
-        print(f" Modelos entrenados: {len(self.models)}/{len(self.target_parameters)}")
+        print(f"✓ Modelos entrenados exitosamente: {len(self.models)}/{len(self.target_parameters)}")
         return model_metrics
     
     async def predict_for_date(self, lat, lon, target_date):
@@ -264,6 +243,11 @@ class ClimatePredictor:
             
             # Paso 3: Entrenar modelos
             model_metrics = self.train_models(prepared_data)
+            
+            if not self.models:
+                raise Exception("No se pudieron entrenar modelos válidos")
+            
+            # Paso 4: Hacer predicción
             year = target_dt.year
             month = target_dt.month
             
@@ -281,12 +265,9 @@ class ClimatePredictor:
             else:
                 season = 3  # Otoño
             
-            # Datos de entrada para predicción
+            # Datos de entrada para predicción (solo características temporales)
             prediction_features = pd.DataFrame([{
-                'Year': year,
                 'Month': month,
-                'Latitude': lat,
-                'Longitude': lon,
                 'Month_sin': month_sin,
                 'Month_cos': month_cos,
                 'Season': season
@@ -326,6 +307,9 @@ class ClimatePredictor:
                 "date": target_date,
                 "latitude": lat,
                 "longitude": lon,
+                "training_years": 5,
+                "models_trained": len(self.models),
+                "model_metrics": model_metrics,
                 "predictions": {
                     "precipitation_mm_per_day": round(predictions.get('Precipitation_mm_per_day', 0.0), 3),
                     "temperature_c": round(predictions.get('Temperature_C', 0.0), 2),
@@ -335,10 +319,11 @@ class ClimatePredictor:
                     "wind_speed_ms": round(predictions.get('Wind_Speed_ms', 0.0), 2),
                     "pressure_kpa": round(predictions.get('Pressure_kPa', 0.0), 2),
                     "cloud_cover_percent": round(predictions.get('Cloud_Cover_Percent', 0.0), 1)
-                }
+                },
+                "generated_at": datetime.now().isoformat()
             }
             
-            print(f" Predicción completada exitosamente")
+            print(f"✓ Predicción completada exitosamente")
             return result
             
         except Exception as e:
@@ -349,32 +334,6 @@ class ClimatePredictor:
                 "longitude": lon,
                 "generated_at": datetime.now().isoformat()
             }
+            print(f"✗ Error en predicción: {e}")
             return error_result
-    
-    def prepare_seasonal_features(self, df):
-        """Crear múltiples características estacionales en lugar de una sola"""
-        
-        # Características cíclicas existentes
-        df['Month_sin'] = np.sin(2 * np.pi * df['Month'] / 12)
-        df['Month_cos'] = np.cos(2 * np.pi * df['Month'] / 12)
-        
-        # Características adicionales por ubicación
-        for idx, row in df.iterrows():
-            lat, lon, month = row['Latitude'], row['Longitude'], row['Month']
-            
-            # Característica de zona climática
-            df.loc[idx, 'Climate_Zone'] = self._get_climate_zone(lat, lon)
-            
-            # Características solares
-            solar_features = self.get_solar_season_features(month, lat)
-            df.loc[idx, 'Daylight_Hours'] = solar_features['daylight_hours']
-            df.loc[idx, 'Solar_Intensity'] = solar_features['solar_intensity']
-            
-            # Características de lluvia regional
-            df.loc[idx, 'Rainy_Season'] = self._is_rainy_season(month, lat, lon)
-            
-            # Distancia al ecuador (afecta estacionalidad)
-            df.loc[idx, 'Equatorial_Distance'] = abs(lat)
-        
-        return df
 

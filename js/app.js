@@ -335,6 +335,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeApp();
 
+    async function handleCoordinateSearch(event) {
+        // Prevenir que el formulario recargue la página
+        event.preventDefault(); 
+        
+        // 1. Obtener los valores de los inputs
+        const latInput = document.getElementById('lat-input');
+        const lonInput = document.getElementById('lon-input');
+        const dateInput = document.getElementById('date-input'); // El input de fecha del formulario
+
+        const lat = parseFloat(latInput.value);
+        const lon = parseFloat(lonInput.value);
+        const date = dateInput.value;
+
+        // 2. Validar que los datos no estén vacíos y sean correctos
+        if (isNaN(lat) || isNaN(lon) || !date) {
+            alert('Por favor, introduce una latitud, longitud y fecha válidas.');
+            return;
+        }
+
+        console.log(`Buscando predicción para Lat: ${lat}, Lon: ${lon}, Fecha: ${date}`);
+
+        // Muestra un indicador de carga
+        mainCard.temp.textContent = '..°';
+        
+        try {
+            // 3. Llamar a la API para obtener la predicción (de api-integration.js)
+            const prediction = await getEnhancedPrediction(lat, lon, date);
+
+            if (prediction && prediction.predictions) {
+                // 4. Actualizar la interfaz con los nuevos datos (de api-integration.js)
+                displayPredictionData(prediction);
+
+                // 5. Actualizar el título de la ubicación principal
+                locationNameElement.textContent = `Coordenadas: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                
+                // 6. Actualizar la vista del mapa (la variable 'map' es accesible aquí)
+                if (map) {
+                    updateMap(lat, lon, `Predicción para ${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+                }
+            } else {
+                alert('No se pudo obtener la predicción para la ubicación y fecha seleccionadas.');
+                mainCard.temp.textContent = '--°'; // Restaura a un estado de error
+            }
+        } catch (error) {
+            console.error('Error en la búsqueda por coordenadas:', error);
+            alert('Ocurrió un error al contactar al servidor. Inténtalo de nuevo.');
+            mainCard.temp.textContent = '--°';
+        }
+    }
+
+    // --- CONECTAR LA FUNCIÓN AL FORMULARIO ---
+    // Busca el formulario por su ID. Debes agregar id="coordinate-form" a tu <form>
+    const coordinateForm = document.getElementById('coordinate-form'); 
+    if (coordinateForm) {
+        coordinateForm.addEventListener('submit', handleCoordinateSearch);
+    }
+
     // --- FUNCIONALIDAD DE CAMBIO DE TEMA ---
     const themeToggleBtn = document.querySelector('.theme-switcher');
     

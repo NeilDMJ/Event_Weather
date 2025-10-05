@@ -99,14 +99,14 @@
         <!-- NUEVA SECCIÓN PARA LA SEGUNDA GRÁFICA -->
         <section class="card new-chart-card">
             <h3>Resumen</h3>
-            <form>
+            <form id="coordinate-form">
                 <label>Latitud:</label>
-                <input type="number" step="any" name="latitud">
+                <input type="number" step="any" name="latitud" id="lat-input" placeholder="10.3742">
                 <label>Longitud:</label>
-                <input type="number" step="any" name="longitud">
+                <input type="number" step="any" name="longitud" id="lon-input" placeholder="-96.3180">
                 <label>Fecha:</label>
-                <input type="date" name="fecha">
-                <button type="submit">Guardar</button>
+                <input type="date" name="fecha" id="date-input">
+                <button type="submit">Buscar</button>
             </form>
             <div class="chart-wrap" style="margin-top:12px;">
                 <canvas id="newSummaryChart"></canvas>
@@ -124,8 +124,10 @@
             <div class="summary-graph"><canvas id="summaryChart"></canvas></div>
         </section>
     </main>
-
+    <script src="./js/config.js"></script>
+    <script src="./js/api-client.js"></script>
+    <script src="./js/api-integration.js"></script>
     <script src="./js/app.js"></script>
-    
+    <script src="./js/app.js"></script>
 </body>
 </html>

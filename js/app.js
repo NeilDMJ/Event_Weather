@@ -25,28 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const API_KEY = '95d485525131456b8e1231409250410';
     let currentForecastData = null;
 
-    // --- FUNCIÓN DE DETECCIÓN DE NAVEGADOR PARA DEBUGGING ---
-    function detectBrowser() {
-        const userAgent = navigator.userAgent;
-        if (userAgent.includes('Firefox')) {
-            console.log('Detectado Firefox - aplicando configuraciones específicas para el mapa');
-            return 'firefox';
-        } else if (userAgent.includes('Edg')) {
-            console.log('Detectado Edge');
-            return 'edge';
-        } else if (userAgent.includes('OPR') || userAgent.includes('Opera')) {
-            console.log('Detectado Opera');
-            return 'opera';
-        } else if (userAgent.includes('Chrome') && userAgent.includes('Brave')) {
-            console.log('Detectado Brave - aplicando configuraciones específicas para el mapa');
-            return 'brave';
-        } else if (userAgent.includes('Chrome')) {
-            console.log('Detectado Chrome');
-            return 'chrome';
-        }
-        return 'unknown';
-    }
-
     // --- FUNCIÓN PARA OBTENER LA FECHA DE HOY EN FORMATO YYYY-MM-DD ---
     function getTodayDateString() {
         const today = new Date();
@@ -71,88 +49,18 @@ document.addEventListener('DOMContentLoaded', function() {
             updateMap(lat, lon, cityName);
             return;
         }
-
-        // Esperar a que el contenedor esté visible y tenga dimensiones
-        const mapContainer = document.getElementById('mi_mapa');
-        if (!mapContainer || mapContainer.offsetWidth === 0) {
-            setTimeout(() => initMap(lat, lon, cityName), 100);
-            return;
-        }
-
-        const browser = detectBrowser();
-        const isFirefoxOrBrave = browser === 'firefox' || browser === 'brave';
-
-        try {
-            // Configuraciones específicas para Firefox y Brave
-            const mapOptions = {
-                zoomControl: true,
-                scrollWheelZoom: true,
-                doubleClickZoom: true,
-                boxZoom: true,
-                keyboard: true,
-                dragging: true,
-                touchZoom: true,
-                preferCanvas: isFirefoxOrBrave, // Usar canvas en lugar de SVG para mejor rendimiento
-                renderer: isFirefoxOrBrave ? L.canvas() : undefined
-            };
-
-            map = L.map('mi_mapa', mapOptions).setView([lat, lon], 13);
-
-            // Configuración del tile layer con opciones específicas para navegadores problemáticos
-            const tileOptions = {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                maxZoom: 18,
-                subdomains: ['a', 'b', 'c', 'd'],
-                crossOrigin: true
-            };
-
-            if (isFirefoxOrBrave) {
-                tileOptions.detectRetina = false; // Desactivar detección de retina en navegadores problemáticos
-                tileOptions.updateWhenIdle = true; // Actualizar tiles solo cuando el mapa esté quieto
-            }
-
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', tileOptions).addTo(map);
-
-            marker = L.marker([lat, lon]).addTo(map).bindPopup(cityName).openPopup();
-            locationNameElement.textContent = cityName;
-
-            // Forzar recalculación del tamaño después de la inicialización
-            // Tiempo extendido para Firefox y Brave
-            const invalidateDelay = isFirefoxOrBrave ? 500 : 250;
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize();
-                    console.log(`Mapa invalidado después de ${invalidateDelay}ms para ${browser}`);
-                }
-            }, invalidateDelay);
-
-        } catch (error) {
-            console.error('Error al inicializar el mapa:', error);
-            // Reintentar en caso de error con delay más largo para navegadores problemáticos
-            const retryDelay = isFirefoxOrBrave ? 1000 : 500;
-            setTimeout(() => initMap(lat, lon, cityName), retryDelay);
-        }
+        map = L.map('mi_mapa').setView([lat, lon], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        }).addTo(map);
+        marker = L.marker([lat, lon]).addTo(map).bindPopup(cityName).openPopup();
+        locationNameElement.textContent = cityName;
     }
     
     function updateMap(lat, lon, cityName) {
-        try {
-            map.setView([lat, lon], 13);
-            marker.setLatLng([lat, lon]).setPopupContent(cityName).openPopup();
-            locationNameElement.textContent = cityName;
-            
-            // Asegurar que el mapa se redibuje correctamente
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize();
-                }
-            }, 100);
-        } catch (error) {
-            console.error('Error al actualizar el mapa:', error);
-            // En caso de error, reinicializar el mapa
-            map = null;
-            marker = null;
-            initMap(lat, lon, cityName);
-        }
+        map.setView([lat, lon], 13);
+        marker.setLatLng([lat, lon]).setPopupContent(cityName).openPopup();
+        locationNameElement.textContent = cityName;
     }
 
     // --- FUNCIÓN PARA ACTUALIZAR TODA LA UI DEL CLIMA (CORREGIDA) ---
@@ -229,14 +137,8 @@ document.addEventListener('DOMContentLoaded', function() {
             currentForecastData = data;
 
             const { lat, lon, name, region } = data.location;
-            
-            // Actualizar UI del clima primero
+            initMap(lat, lon, `${name}, ${region}`);
             updateWeatherUI(currentForecastData, dateInput.value);
-            
-            // Inicializar mapa con un pequeño delay para permitir que el DOM se estabilice
-            setTimeout(() => {
-                initMap(lat, lon, `${name}, ${region}`);
-            }, 150);
 
         } catch (error) {
             console.error('Error al buscar la ubicación:', error);
@@ -298,6 +200,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Listener para el botón de descarga (descarga currentForecastData como JSON)
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+            if (!currentForecastData) {
+                alert('No hay datos cargados para descargar.');
+                return;
+            }
+
+            // Construir nombre de archivo: ciudad_fecha.json
+            const loc = currentForecastData.location || {};
+            const city = (loc.name || 'location').replace(/[^a-z0-9-_]/gi, '_');
+            const dateStr = (currentForecastData.location && currentForecastData.forecast && currentForecastData.forecast.forecastday && currentForecastData.forecast.forecastday[0]) ? currentForecastData.forecast.forecastday[0].date : new Date().toISOString().slice(0,10);
+            const filename = `${city}_${dateStr}.json`;
+
+            const blob = new Blob([JSON.stringify(currentForecastData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        });
+    }
+
     // RESTAURADO: Event listener para el calendario
     dateInput.addEventListener('change', () => {
         if (currentForecastData) {
@@ -319,31 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FUNCIÓN DE INICIALIZACIÓN ---
     function initializeApp() {
         dateInput.value = getTodayDateString();
-        
-        // Agregar listener para resize de ventana
-        window.addEventListener('resize', () => {
-            if (map) {
-                setTimeout(() => {
-                    map.invalidateSize();
-                }, 100);
-            }
-        });
-
-        // Agregar observer para detectar cambios en el contenedor del mapa
-        if (window.ResizeObserver) {
-            const mapContainer = document.getElementById('mi_mapa');
-            if (mapContainer) {
-                const resizeObserver = new ResizeObserver(() => {
-                    if (map) {
-                        setTimeout(() => {
-                            map.invalidateSize();
-                        }, 50);
-                    }
-                });
-                resizeObserver.observe(mapContainer);
-            }
-        }
-
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {

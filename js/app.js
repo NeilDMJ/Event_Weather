@@ -139,6 +139,70 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // --- FUNCIÓN PARA ACTUALIZAR LA TARJETA PRINCIPAL CON DATOS DE LA API DE PREDICCIÓN ---
+    function updateMainCardWithPrediction(predictionData, weatherData, selectedDate) {
+        try {
+            // Verificar que tenemos datos de predicción
+            if (!predictionData || !predictionData.predictions) {
+                console.warn('No hay datos de predicción disponibles, usando datos de WeatherAPI');
+                return; // Mantenemos los datos actuales de WeatherAPI
+            }
+
+            const pred = predictionData.predictions;
+            const dateObj = new Date(selectedDate + 'T12:00:00');
+            const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+
+            // Actualizar día y fecha
+            mainCard.day.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            mainCard.date.textContent = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+
+            // Usar datos de predicción del backend
+            mainCard.temp.textContent = `${Math.round(pred.temperature_c || pred.temperature_max_c || 0)}°`;
+            
+            // Mantener icono de WeatherAPI si está disponible, o usar uno basado en la predicción
+            if (weatherData && weatherData.forecast) {
+                const weatherDay = weatherData.forecast.forecastday.find(day => day.date === selectedDate);
+                if (weatherDay) {
+                    mainCard.icon.src = `https:${weatherDay.day.condition.icon}`;
+                    mainCard.icon.alt = weatherDay.day.condition.text;
+                } else {
+                    // Usar icono genérico basado en precipitación
+                    if (pred.precipitation_mm_per_day > 5) {
+                        mainCard.icon.src = "https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-1.svg";
+                        mainCard.icon.alt = "Lluvia esperada";
+                    } else if (pred.cloud_cover_percent > 70) {
+                        mainCard.icon.src = "https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-1.svg";
+                        mainCard.icon.alt = "Nublado";
+                    } else {
+                        mainCard.icon.src = "https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/day.svg";
+                        mainCard.icon.alt = "Despejado";
+                    }
+                }
+            }
+
+            // Actualizar detalles con datos de predicción
+            const realFeelTemp = pred.temperature_c || pred.temperature_max_c || 0;
+            mainCard.realFeel.textContent = `Sensación: ${Math.round(realFeelTemp)}°`;
+            mainCard.wind.textContent = `Viento: ${Math.round((pred.wind_speed_ms || 0) * 3.6)} km/h`; // Convertir m/s a km/h
+            mainCard.pressure.textContent = `Presión: ${Math.round((pred.pressure_kpa || 0) * 10)}mb`; // Convertir kPa a mb
+            mainCard.humidity.textContent = `Humedad: ${Math.round(pred.humidity_percent || 0)}%`;
+
+            // Agregar información adicional de predicción
+            console.log('Datos de predicción aplicados:', {
+                temperatura: pred.temperature_c,
+                precipitacion: pred.precipitation_mm_per_day,
+                humedad: pred.humidity_percent,
+                viento: pred.wind_speed_ms,
+                presion: pred.pressure_kpa,
+                nubosidad: pred.cloud_cover_percent
+            });
+
+        } catch (error) {
+            console.error('Error actualizando tarjeta principal con predicción:', error);
+            // En caso de error, mantener los datos actuales
+        }
+    }
+
     // --- FUNCIÓN PRINCIPAL PARA OBTENER CLIMA ---
     async function getWeatherForCity(cityOrCoords) {
         // Pedimos 14 días para tener un buen rango para el calendario
@@ -171,65 +235,115 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- FUNCIONES PARA COMUNICAR CON LA API BACKEND ---
     async function sendDataToApi({ date, name, region, country, lat, lon }) {
-        // Normalizamos lat lon numéricos
-        const url = new URL('http://localhost:8000/predict');
-        url.searchParams.append('lat', lat);
-        url.searchParams.append('lon', lon);
-        url.searchParams.append('date', date);
-
         const aiPromptEl = document.getElementById('ai-prompt');
-        aiPromptEl.textContent = 'Generando predicción...';
+        if (aiPromptEl) aiPromptEl.textContent = 'Generando predicción...';
 
-        const response = await fetch(url.toString(), { method: 'GET' });
-        if (!response.ok) {
-            const errorText = await response.text();
-            aiPromptEl.textContent = `Error: ${response.status} - ${errorText}`;
-            throw new Error(`API responded with ${response.status}`);
+        try {
+            // Usar la API client en lugar de fetch directo
+            const result = await weatherAPI.getPrediction(lat, lon, date);
+
+            // Verificar si tenemos datos reales o datos demo
+            const isDemo = result.note && result.note.includes('demostración');
+            
+            if (aiPromptEl) {
+                // Mostrar un prompt resumido en la sección new-chart-card
+                const preds = result.predictions || {};
+                const lines = [];
+                lines.push(`Predicción para ${name}, ${region || country} el ${result.prediction_date || date}:`);
+                
+                if (isDemo) {
+                    lines.push('(Modo demostración - Backend no disponible)');
+                }
+                
+                for (const [k, v] of Object.entries(preds)) {
+                    lines.push(`- ${k.replace(/_/g, ' ')}: ${v}`);
+                }
+                lines.push(`(Generado: ${new Date(result.generated_at || new Date()).toLocaleString('es-ES')})`);
+                aiPromptEl.textContent = lines.join('\n');
+            }
+
+            // Actualizar gráfico newSummaryChart con al menos temperatura y precipitación si existen
+            const labels = ['Predicción'];
+            const datasets = [];
+            const preds = result.predictions || {};
+            
+            if ('temperature_c' in preds) {
+                datasets.push({ 
+                    label: 'Temp (°C)', 
+                    data: [preds.temperature_c], 
+                    borderColor: 'rgba(255,99,132,1)', 
+                    backgroundColor: 'rgba(255,99,132,0.2)' 
+                });
+            }
+            if ('precipitation_mm_per_day' in preds) {
+                datasets.push({ 
+                    label: 'Precipitación (mm/d)', 
+                    data: [preds.precipitation_mm_per_day], 
+                    borderColor: 'rgba(54,162,235,1)', 
+                    backgroundColor: 'rgba(54,162,235,0.2)' 
+                });
+            }
+            if (datasets.length === 0) {
+                // Datos alternativos: mostrar humedad y nubosidad si no hay temp/precip
+                if ('humidity_percent' in preds) {
+                    datasets.push({ 
+                        label: 'Humedad (%)', 
+                        data: [preds.humidity_percent], 
+                        borderColor: 'rgba(75,192,192,1)', 
+                        backgroundColor: 'rgba(75,192,192,0.2)' 
+                    });
+                }
+                if ('cloud_cover_percent' in preds) {
+                    datasets.push({ 
+                        label: 'Nubosidad (%)', 
+                        data: [preds.cloud_cover_percent], 
+                        borderColor: 'rgba(201,203,207,1)', 
+                        backgroundColor: 'rgba(201,203,207,0.2)' 
+                    });
+                }
+            }
+
+            // Actualizar el gráfico
+            const ctx = document.getElementById('newSummaryChart');
+            if (ctx && datasets.length > 0) {
+                const config = { 
+                    type: 'bar', 
+                    data: { labels, datasets }, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: isDemo ? 'Predicción (Modo Demo)' : 'Predicción IA'
+                            }
+                        }
+                    } 
+                };
+
+                if (newSummaryChartInstance) {
+                    // Reemplazar los datos y actualizar
+                    newSummaryChartInstance.data = config.data;
+                    newSummaryChartInstance.options = config.options;
+                    newSummaryChartInstance.update();
+                } else {
+                    newSummaryChartInstance = new Chart(ctx, config);
+                }
+            }
+
+            // NUEVO: Actualizar la tarjeta principal con datos de predicción
+            updateMainCardWithPrediction(result, currentForecastData, date);
+
+            return result;
+
+        } catch (error) {
+            console.error('Error obteniendo predicción:', error);
+            if (aiPromptEl) {
+                aiPromptEl.textContent = `Error: No se pudo conectar al backend. Mostrando datos de WeatherAPI.`;
+            }
+            // En caso de error, la tarjeta principal mantendrá los datos de WeatherAPI
+            throw error;
         }
-
-        const result = await response.json();
-
-        // Mostrar un prompt resumido (simulando IA) en la sección new-chart-card
-        // Construimos un texto legible con algunos campos
-        const preds = result.predictions || {};
-        const lines = [];
-        lines.push(`Predicción para ${name}, ${region || country} el ${result.prediction_date}:`);
-        for (const [k, v] of Object.entries(preds)) {
-            lines.push(`- ${k.replace(/_/g, ' ')}: ${v}`);
-        }
-        lines.push(`(Generado: ${new Date(result.generated_at).toLocaleString('es-ES')})`);
-        aiPromptEl.textContent = lines.join('\n');
-
-        // Actualizar gráfico newSummaryChart con al menos temperatura y precipitación si existen
-        const labels = ['Predicción'];
-        const datasets = [];
-        if ('temperature_c' in preds) {
-            datasets.push({ label: 'Temp (°C)', data: [preds.temperature_c], borderColor: 'rgba(255,99,132,1)', backgroundColor: 'rgba(255,99,132,0.2)' });
-        }
-        if ('precipitation_mm_per_day' in preds) {
-            datasets.push({ label: 'Precipitación (mm/d)', data: [preds.precipitation_mm_per_day], borderColor: 'rgba(54,162,235,1)', backgroundColor: 'rgba(54,162,235,0.2)' });
-        }
-        if (datasets.length === 0) {
-            // Datos alternativos: mostrar humedad y nubosidad si no hay temp/precip
-            if ('humidity_percent' in preds) datasets.push({ label: 'Humedad (%)', data: [preds.humidity_percent], borderColor: 'rgba(75,192,192,1)', backgroundColor: 'rgba(75,192,192,0.2)' });
-            if ('cloud_cover_percent' in preds) datasets.push({ label: 'Nubosidad (%)', data: [preds.cloud_cover_percent], borderColor: 'rgba(201,203,207,1)', backgroundColor: 'rgba(201,203,207,0.2)' });
-        }
-
-        const ctx = document.getElementById('newSummaryChart');
-        if (!ctx) return;
-
-        const config = { type: 'bar', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false } };
-
-        if (newSummaryChartInstance) {
-            // Reemplazar los datos y actualizar
-            newSummaryChartInstance.data = config.data;
-            newSummaryChartInstance.options = config.options;
-            newSummaryChartInstance.update();
-        } else {
-            newSummaryChartInstance = new Chart(ctx, config);
-        }
-
-        return result;
     }
 
     // --- LÓGICA PARA SUGERENCIAS DE BÚSQUEDA ---

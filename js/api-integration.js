@@ -1,10 +1,13 @@
 /**
- * Extensión del app.js original para integrar con tu API
- * Este archivo muestra cómo modificar tu frontend existente
+ * Integración con tu API backend - Sin APIs externas
+ * Este archivo configura el cliente para usar únicamente tu backend
  */
 
-// Agregar después de las variables globales existentes
-const BACKEND_API_URL = 'http://localhost:8000';
+// Configuración del backend - AUTO-DETECTA URL
+const BACKEND_API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:8000' 
+    : 'https://event-weather-backend.vercel.app'; // o tu URL de producción
+
 let weatherAPIClient = null;
 
 // Inicializar cliente de la API
@@ -35,13 +38,11 @@ async function getEnhancedPrediction(lat, lon, date) {
 }
 
 // Función para mostrar datos de predicción en la UI
-function displayPredictionData(prediction, weatherData) {
+function displayPredictionData(prediction) {
     if (!prediction || !prediction.predictions) {
-        return weatherData; // Retornar datos originales si no hay predicción
+        return null;
     }
     
-    // Crear datos mejorados combinando WeatherAPI + tu predicción ML
-    const enhancedData = { ...weatherData };
     const pred = prediction.predictions;
     
     // Actualizar la tarjeta principal con datos de predicción ML
@@ -89,7 +90,7 @@ function displayPredictionData(prediction, weatherData) {
     // Mostrar información adicional de la predicción
     showPredictionDetails(prediction);
     
-    return enhancedData;
+    return prediction;
 }
 
 // Mostrar detalles completos de la predicción
@@ -145,55 +146,7 @@ function showPredictionDetails(prediction) {
     }, 10000);
 }
 
-// Modificar la función existente getWeatherForCity
-async function getWeatherForCityEnhanced(cityOrCoords) {
-    try {
-        // 1. Obtener datos básicos de WeatherAPI (función original)
-        const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityOrCoords}&days=14&aqi=no&alerts=no&lang=es`;
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) throw new Error('Ubicación no encontrada');
-        
-        const weatherData = await response.json();
-        currentForecastData = weatherData;
-
-        const { lat, lon, name, region } = weatherData.location;
-        
-        // 2. Intentar obtener predicción ML para la fecha seleccionada
-        if (weatherAPIClient && dateInput.value) {
-            const prediction = await getEnhancedPrediction(lat, lon, dateInput.value);
-            
-            if (prediction) {
-                // 3. Combinar datos y mostrar
-                const enhancedData = displayPredictionData(prediction, weatherData);
-                currentForecastData = enhancedData;
-            }
-        }
-        
-        // 4. Actualizar mapa y UI
-        initMap(lat, lon, `${name}, ${region}`);
-        updateWeatherUI(currentForecastData, dateInput.value);
-
-    } catch (error) {
-        console.error('Error al buscar la ubicación:', error);
-        alert('Ubicación no encontrada. Por favor, intenta con otro nombre.');
-    }
-}
-
-// Ejemplo de cómo modificar el event listener del formulario de búsqueda
-/*
-searchForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const cityName = citySearchInput.value.trim();
-    if (cityName) {
-        getWeatherForCityEnhanced(cityName); // Usar función mejorada
-        suggestionsContainer.style.display = 'none';
-    }
-});
-*/
-
 // Inicializar API al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     initWeatherAPI();
-    // ... resto de tu código de inicialización
 });

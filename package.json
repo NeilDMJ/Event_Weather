@@ -1,13 +1,17 @@
 {
-  "name": "event-weather-frontend",
+  "name": "event-weather-dashboard",
   "version": "1.0.0",
   "description": "Weather Dashboard with ML Predictions",
-  "main": "frontend/index.html",
+  "main": "index.html",
+  "homepage": "index.html",
   "scripts": {
-    "start": "python3 -m http.server 3000",
-    "dev": "python3 -m http.server 3000"
+    "start": "serve .",
+    "dev": "serve ."
   },
-  "keywords": ["weather", "dashboard", "ml", "predictions"],
+  "keywords": ["weather", "dashboard", "ml", "predictions", "nasa"],
   "author": "SaviDevs",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.0.0"
+  }
 }

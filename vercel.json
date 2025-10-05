@@ -1,55 +1,19 @@
 {
   "version": 2,
-  "name": "event-weather-frontend",
-  "builds": [
-    {
-      "src": "frontend/**/*",
-      "use": "@vercel/static"
-    }
-  ],
+  "name": "event-weather-dashboard",
+  "public": true,
   "routes": [
     {
       "src": "/",
-      "dest": "/frontend/index.html"
+      "dest": "/index.html"
     },
     {
-      "src": "/index.html",
-      "dest": "/frontend/index.html"
-    },
-    {
-      "src": "/test-api.html",
-      "dest": "/frontend/test-api.html"
-    },
-    {
-      "src": "/css/(.*)",
-      "dest": "/frontend/css/$1"
-    },
-    {
-      "src": "/js/(.*)",
-      "dest": "/frontend/js/$1"
+      "src": "/(css|js)/(.*)",
+      "dest": "/$1/$2"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/$1"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "dest": "/$1"
     }
   ]
 }

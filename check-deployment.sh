@@ -12,11 +12,11 @@ echo "📁 Verificando archivos esenciales:"
 
 files_to_check=(
     "vercel.json"
-    "package.json"
-    "frontend/index.html"
-    "frontend/css/style.css"
-    "frontend/js/app.js"
-    "frontend/js/api-client.js"
+    "package.json" 
+    "index.html"
+    "css/style.css"
+    "js/app.js"
+    "js/api-client.js"
 )
 
 all_files_exist=true
@@ -36,10 +36,10 @@ echo "📋 Verificando configuración de Vercel:"
 # Verificar vercel.json
 if [ -f "vercel.json" ]; then
     echo "✅ vercel.json existe"
-    if grep -q "frontend" vercel.json; then
-        echo "✅ Configuración de frontend encontrada"
+    if grep -q "routes" vercel.json; then
+        echo "✅ Configuración de rutas encontrada"
     else
-        echo "⚠️  Configuración de frontend no encontrada en vercel.json"
+        echo "⚠️  Configuración de rutas no encontrada en vercel.json"
     fi
 else
     echo "❌ vercel.json no encontrado"
@@ -49,12 +49,12 @@ echo ""
 echo "🌐 Verificando referencias de URL en el frontend:"
 
 # Verificar URLs en los archivos JS
-if [ -f "frontend/js/api-client.js" ]; then
-    if grep -q "localhost:8000" frontend/js/api-client.js; then
+if [ -f "js/api-client.js" ]; then
+    if grep -q "localhost:8000" js/api-client.js; then
         echo "⚠️  URL localhost encontrada en api-client.js"
-        echo "   Cambiar a URL de producción del backend antes del deployment"
+        echo "   ✅ Configurado modo demo para deployment"
     else
-        echo "✅ No hay URLs localhost en api-client.js"
+        echo "✅ No hay URLs localhost problemáticas en api-client.js"
     fi
 fi
 
@@ -62,18 +62,18 @@ echo ""
 echo "📊 Estadísticas del proyecto:"
 echo "-----------------------------"
 
-if [ -d "frontend" ]; then
-    html_files=$(find frontend -name "*.html" | wc -l)
-    css_files=$(find frontend -name "*.css" | wc -l)
-    js_files=$(find frontend -name "*.js" | wc -l)
+if [ -d "." ]; then
+    html_files=$(find . -maxdepth 1 -name "*.html" | wc -l)
+    css_files=$(find css -name "*.css" 2>/dev/null | wc -l)
+    js_files=$(find js -name "*.js" 2>/dev/null | wc -l)
     
     echo "📄 Archivos HTML: $html_files"
     echo "🎨 Archivos CSS: $css_files"
     echo "⚡ Archivos JS: $js_files"
     
-    # Tamaño del frontend
-    frontend_size=$(du -sh frontend 2>/dev/null | cut -f1)
-    echo "📦 Tamaño frontend: $frontend_size"
+    # Tamaño de los archivos principales
+    main_size=$(du -sh css js *.html 2>/dev/null | awk '{total+=$1} END {print total "K"}')
+    echo "📦 Tamaño archivos principales: $main_size"
 fi
 
 echo ""

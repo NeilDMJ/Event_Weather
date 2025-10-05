@@ -1,0 +1,13 @@
+backend/
+models/
+docs/
+frontend/
+*.sh
+*.md
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.log
+.env
+env/

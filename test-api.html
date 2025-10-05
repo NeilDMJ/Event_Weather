@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Weather Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: white;
+        }
+        .test-section {
+            background: #2d2d2d;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #333;
+            color: white;
+        }
+        button {
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #0a0a0a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            overflow-x: auto;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: #2d1414;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        .status-online {
+            color: #4CAF50;
+        }
+        .status-offline {
+            color: #f44336;
+        }
+        .status-demo {
+            color: #FF9800;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test API - Weather Prediction</h1>
+    
+    <div class="test-section">
+        <h2>Estado de la API</h2>
+        <button onclick="checkAPIStatus()">Verificar Estado</button>
+        <div id="api-status-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Predicción Climática</h2>
+        <div>
+            <label>Latitud:</label>
+            <input type="number" id="lat" value="17.8270" step="any">
+            
+            <label>Longitud:</label>
+            <input type="number" id="lon" value="-97.8043" step="any">
+            
+            <label>Fecha (YYYY-MM-DD):</label>
+            <input type="date" id="date" value="2025-12-25">
+            
+            <button onclick="testPrediction()">Obtener Predicción</button>
+        </div>
+        <div id="prediction-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Datos Históricos</h2>
+        <div>
+            <label>Latitud:</label>
+            <input type="number" id="hist-lat" value="17.8270" step="any">
+            
+            <label>Longitud:</label>
+            <input type="number" id="hist-lon" value="-97.8043" step="any">
+            
+            <label>Año inicio:</label>
+            <input type="number" id="start-year" value="2020">
+            
+            <label>Año fin:</label>
+            <input type="number" id="end-year" value="2025">
+            
+            <button onclick="testHistoricalData()">Obtener Datos Históricos</button>
+        </div>
+        <div id="historical-result"></div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script>
+        // Inicializar cliente API
+        const api = new WeatherAPIClient('http://localhost:8000');
+
+        async function checkAPIStatus() {
+            const resultDiv = document.getElementById('api-status-result');
+            resultDiv.innerHTML = 'Verificando...';
+            
+            try {
+                const status = await api.healthCheck();
+                
+                if (status.status === 'online') {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <span class="status-online">API Online</span><br>
+                            <strong>Mensaje:</strong> ${status.message}<br>
+                            <strong>Versión:</strong> ${status.version}
+                        </div>
+                    `;
+                } else if (status.status === 'demo') {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <span class="status-demo">Modo Demo Activo</span><br>
+                            <strong>Mensaje:</strong> ${status.message}<br>
+                            <strong>Versión:</strong> ${status.version}<br>
+                            <strong>Nota:</strong> Usando datos de demostración
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <span class="status-offline">API Offline</span><br>
+                            <strong>Error:</strong> ${status.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <span class="status-offline">Error de conexión</span><br>
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testPrediction() {
+            const lat = document.getElementById('lat').value;
+            const lon = document.getElementById('lon').value;
+            const date = document.getElementById('date').value;
+            const resultDiv = document.getElementById('prediction-result');
+            
+            if (!lat || !lon || !date) {
+                resultDiv.innerHTML = '<div class="result error">Por favor, completa todos los campos</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Obteniendo predicción...';
+            
+            try {
+                const prediction = await api.getPrediction(parseFloat(lat), parseFloat(lon), date);
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Predicción exitosa:</strong>
+                        <pre>${JSON.stringify(prediction, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error en predicción:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testHistoricalData() {
+            const lat = document.getElementById('hist-lat').value;
+            const lon = document.getElementById('hist-lon').value;
+            const startYear = document.getElementById('start-year').value;
+            const endYear = document.getElementById('end-year').value;
+            const resultDiv = document.getElementById('historical-result');
+            
+            if (!lat || !lon || !startYear || !endYear) {
+                resultDiv.innerHTML = '<div class="result error">Por favor, completa todos los campos</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Obteniendo datos históricos...';
+            
+            try {
+                const data = await api.getClimateData(
+                    parseFloat(lat), 
+                    parseFloat(lon), 
+                    parseInt(startYear), 
+                    parseInt(endYear)
+                );
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Datos históricos obtenidos:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error obteniendo datos:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Verificar estado al cargar
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAPIStatus();
+        });
+    </script>
+</body>
+</html>

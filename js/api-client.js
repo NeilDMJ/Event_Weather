@@ -4,9 +4,32 @@
  */
 
 class WeatherAPIClient {
-    constructor(baseURL = 'https://tu-backend.vercel.app') { // Cambiar por tu URL de backend
-        this.baseURL = baseURL;
-        this.isProduction = !baseURL.includes('localhost');
+    constructor(baseURL = null) { 
+        // Auto-detectar backend o usar modo demo
+        this.baseURL = baseURL || this.detectBackendURL();
+        this.isProduction = !this.baseURL.includes('localhost');
+        console.log(`🌐 API configurada en: ${this.baseURL}`);
+    }
+
+    /**
+     * Detectar automáticamente la URL del backend
+     */
+    detectBackendURL() {
+        // Primero verificar si estamos en desarrollo local
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:8000';
+        }
+        
+        // URLs conocidas del backend (actualizar según deployment real)
+        const possibleBackends = [
+            'https://event-weather-backend.vercel.app',
+            'https://event-weather-api.vercel.app',
+            'https://event-weather-backend.railway.app',
+            'https://event-weather-api.railway.app'
+        ];
+        
+        // Por ahora retornar la primera opción (actualizar después de verificar cuál funciona)
+        return possibleBackends[0];
     }
 
     /**

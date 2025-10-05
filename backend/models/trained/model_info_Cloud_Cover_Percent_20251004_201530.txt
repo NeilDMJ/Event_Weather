@@ -1,5 +1,0 @@
-Modelo: Cloud_Cover_Percent
-Algoritmo: GradientBoostingRegressor
-Ubicación entrenamiento: 17.827, -97.8043
-Fecha entrenamiento: 2025-10-04T20:15:30.176604
-Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Month_sin', 'Month_cos']

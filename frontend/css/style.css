@@ -12,6 +12,7 @@
     --text-muted: #818085;
     --card-color: #242424;
     --border-color: #333333;
+    --selected-bg: #007BFF; /* Color para la tarjeta seleccionada */
 }
 
 body {
@@ -76,7 +77,6 @@ body {
     gap: 15px;
 }
 
-/* --- ESTILOS PARA LA BÚSQUEDA CON SUGERENCIAS --- */
 .search-wrapper {
     position: relative; /* Contexto de posicionamiento para las sugerencias */
 }
@@ -136,8 +136,6 @@ body {
 .suggestion-item:hover {
     background-color: var(--bg-secondary);
 }
-/* --- FIN DE ESTILOS DE SUGERENCIAS --- */
-
 
 #date {
     font-family: 'Instrument Sans', Arial, sans-serif;
@@ -150,37 +148,34 @@ body {
     border: none;
     outline: none;
     text-align: center;
+    color-scheme: dark;
 }
 
-/* --- LAYOUT DEL DASHBOARD CON CSS GRID --- */
+/* --- LAYOUT DEL DASHBOARD (SIMPLIFICADO Y CORREGIDO) --- */
 .dashboard-grid {
     display: grid;
     padding: 20px;
     gap: 20px;
     height: calc(100vh - 70px);
     
-    grid-template-columns: 350px repeat(5, 1fr);
+    /* Columnas: Tarjeta Principal (fija) | Columna derecha (flexible) */
+    grid-template-columns: 350px 1fr;
+    
+    /* Filas: Nav (automática) | Contenido principal (flexible) | Contenido inferior (flexible) */
     grid-template-rows: auto 1fr 1fr;
     
     grid-template-areas:
-        "nav nav nav nav nav nav"
-        "today mini1 mini2 mini3 mini4 mini5"
-        "map map map summary summary summary";
+        "nav      nav"
+        "today    forecast"
+        "map      summary";
 }
 
-/* --- ASIGNACIÓN DE ÁREAS A CADA ELEMENTO --- */
+/* --- ASIGNACIÓN DE ÁREAS --- */
 .time-nav             { grid-area: nav; }
 .current-weather-card { grid-area: today; }
+.forecast-container   { grid-area: forecast; } /* El nuevo contenedor se asigna aquí */
 .map-overview-card    { grid-area: map; }
 .day-summary-card     { grid-area: summary; }
-
-/* Asignación a los mini-cards por su posición */
-.mini-card:nth-of-type(1) { grid-area: mini1; }
-.mini-card:nth-of-type(2) { grid-area: mini2; }
-.mini-card:nth-of-type(3) { grid-area: mini3; }
-.mini-card:nth-of-type(4) { grid-area: mini4; }
-.mini-card:nth-of-type(5) { grid-area: mini5; }
-
 
 /* --- ESTILOS DE LA NAVEGACIÓN DE TIEMPO --- */
 .time-nav {
@@ -269,8 +264,16 @@ body {
     gap: 10px;
 }
 
+/* --- NUEVO: ESTILOS PARA EL CONTENEDOR DE MINI-CARDS --- */
+.forecast-container {
+    display: flex; /* Usamos flex para alinear las tarjetas */
+    justify-content: space-between;
+    gap: 20px;
+}
+
 /* --- ESTILOS DE MINI CARDS --- */
 .mini-card {
+    flex: 1; /* Cada tarjeta ocupa el mismo espacio */
     height: 100%;
     min-height: 150px;
     display: flex;
@@ -279,6 +282,16 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 20px 15px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.mini-card:hover {
+    transform: translateY(-5px);
+}
+
+.mini-card.selected {
+    background-color: var(--selected-bg);
 }
 
 .mini-card header {
@@ -310,8 +323,12 @@ body {
     font-size: inherit;
 }
 
-
 /* --- ESTILOS DE MAPA Y RESUMEN --- */
+.map-overview-card{
+    margin-right: 2rem;
+    width: 1100px;
+}
+
 .map-overview-card #mi_mapa {
     flex-grow: 1;
     background-color: var(--bg-secondary);
@@ -320,34 +337,48 @@ body {
     justify-content: center;
     align-items: center;
     color: var(--text-muted);
-    min-height: 300px;
+    min-height: 250px;
+    width: 100%;
+}
+
+.day-summary-card {
+    margin-left: 750px;
+    width: 50%;
 }
 
 .day-summary-card .summary-graph {
     flex-grow: 1;
     display: flex;
     align-items: flex-end;
-    min-height: 300px;
+    min-height: 250px;
     background-color: var(--bg-secondary);
-    border-radius: 15px;}
+    border-radius: 15px;
+    width: 100%;
+}
 
 /* Media query para dispositivos más pequeños */
 @media (max-width: 1200px) {
     .dashboard-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto auto;
+        grid-template-rows: auto auto auto auto auto; /* Define filas para cada sección */
         grid-template-areas:
             "nav"
             "today"
+            "forecast"
             "summary"
-            "map"
-            "mini-cards";
-        height: auto;
-        overflow-y: auto;
+            "map";
+        height: auto; /* Permite que el contenido crezca */
+        overflow-y: auto; /* Permite scroll si el contenido es mucho */
+    }
+
+    .forecast-container {
+        flex-direction: row; /* Para que se mantengan en fila */
+        overflow-x: auto; /* Habilitar scroll horizontal en móviles */
+        padding-bottom: 15px; /* Espacio para la barra de scroll */
     }
 
     .mini-card {
-        display: none;
+        min-width: 120px; /* Ancho mínimo para que no se aplasten */
     }
     
     .main-header {
@@ -356,6 +387,7 @@ body {
         padding: 10px;
         gap: 10px;
     }
+
     .search-form {
         width: 100%;
         justify-content: center;

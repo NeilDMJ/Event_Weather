@@ -14,6 +14,7 @@
 <body>
 
     <header class="main-header">
+        <!-- El contenido del header no cambia -->
         <div class="header-group">
             <button class="icon-button" aria-label="Más opciones">
                 <svg style="fill: white;" viewBox="0 0 96.86 96.86" xmlns="http://www.w3.org/2000/svg"><g data-name="Layer 2"><g data-name="Layer 1"><path d="M32.92,45.4H12.49A12.5,12.5,0,0,1,0,32.92V12.49A12.5,12.5,0,0,1,12.49,0H32.92A12.5,12.5,0,0,1,45.4,12.49V32.92A12.5,12.5,0,0,1,32.92,45.4Z"></path><path d="M84.37,45.4H63.94A12.5,12.5,0,0,1,51.46,32.92V12.49A12.5,12.5,0,0,1,63.94,0H84.37A12.5,12.5,0,0,1,96.86,12.49V32.92A12.5,12.5,0,0,1,84.37,45.4Z"></path><path d="M74.16,96.86a22.7,22.7,0,1,1,22.7-22.7A22.73,22.73,0,0,1,74.16,96.86Z"></path><path d="M32.92,96.86H12.49A12.5,12.5,0,0,1,0,84.37V63.94A12.5,12.5,0,0,1,12.49,51.46H32.92A12.5,12.5,0,0,1,45.4,63.94V84.37A12.5,12.5,0,0,1,32.92,96.86Z"></path></g></g></svg>
@@ -32,7 +33,7 @@
             <form class="search-form">
                 <div class="search-wrapper">
                     <div class="search-bar">
-                        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M448.3,424.7L335,311.3c20.8-26,33.3-59.1,33.3-95.1c0-84.1-68.1-152.2-152-152.2c-84,0-152,68.2-152,152.2  s68.1,152.2,152,152.2c36.2,0,69.4-12.7,95.5-33.8L425,448L448.3,424.7z M120.1,312.6c-25.7-25.7-39.8-59.9-39.8-96.3  s14.2-70.6,39.8-96.3S180,80,216.3,80c36.3,0,70.5,14.2,96.2,39.9s39.8,59.9,39.8,96.3s-14.2,70.6-39.8,96.3  c-25.7,25.7-59.9,39.9-96.2,39.9C180,352.5,145.8,338.3,120.1,312.6z" fill="white"></path></svg>
+                        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M448.3,424.7L335,311.3c20.8-26,33.3-59.1,33.3-95.1c0-84.1-68.1-152.2-152-152.2c-84,0-152,68.2-152,152.2  s68.1,152.2,152,152.2c36.2,0,69.4-12.7,95.5-33.8L425,448L448.3,424.7z M120.1,312.6c-25.7-25.7-39.8-59.9-39.8-96.3  s14.2-70.6,39.8-96.3S180,80,216.3,80c36.3,0,70.5,14.2,96.2,39.9s39.8,59.9,39.8,96.3s-14.2,70.6,39.8,96.3  c-25.7,25.7-59.9,39.9-96.2,39.9C180,352.5,145.8,338.3,120.1,312.6z" fill="white"></path></svg>
                         <input type="search" id="city-search-input" placeholder="Buscar Ciudad" autocomplete="off">
                     </div>
                     <div id="suggestions-container"></div>
@@ -53,51 +54,59 @@
             <button type="button" class="active">Today</button>
             <button type="button">Tomorrow</button>
         </nav>
+        
         <article class="card current-weather-card">
+            <!-- Contenido de la tarjeta principal -->
             <header class="card-header">
                 <h2>Saturday</h2>
-                <p class="time" id="current-time">10:31 PM</p>
+                <p class="time" id="current-time">4 de octubre</p>
             </header>
             <div class="weather-body">
-                <p class="temperature">16°</p>
+                <p class="temperature">18°</p>
                 <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-1.svg" alt="Parcialmente nublado" class="weather-icon">
             </div>
             <footer class="weather-details">
-                <p>Real feel: 16°</p>
-                <p>Wind: 6-7 km/h</p>
-                <p>Pressure: 1010mb</p>
-                <p>Humidity: 100%</p>
+                <p>Sensación: 18°</p>
+                <p>Viento: 8.6 km/h</p>
+                <p>Presión: 1010mb</p>
+                <p>Humedad: 83%</p>
             </footer>
         </article>
-        <article class="card mini-card">
-            <header><h2>SAT</h2></header>
-            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-1.svg" alt="Cloudy">
-            <footer><h3>10°</h3></footer>
-        </article>
-        <article class="card mini-card">
-            <header><h2>SUN</h2></header>
-            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/day.svg" alt="Sunny">
-            <footer><h3>12°</h3></footer>
-        </article>
-        <article class="card mini-card">
-            <header><h2>MON</h2></header>
-            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-2.svg" alt="Cloudy">
-            <footer><h3>11°</h3></footer>
-        </article>
-        <article class="card mini-card">
-            <header><h2>TUE</h2></header>
-            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-3.svg" alt="Rainy">
-            <footer><h3>9°</h3></footer>
-        </article>
-        <article class="card mini-card">
-            <header><h2>WED</h2></header>
-            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-1.svg" alt="Rainy">
-            <footer><h3>8°</h3></footer>
-        </article>
+            
+        <!-- NUEVO: Contenedor para las mini-tarjetas para un layout limpio -->
+        <div class="forecast-container">
+            <article class="card mini-card">
+                <header><h2>SÁB</h2></header>
+                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-1.svg" alt="Cloudy">
+                <footer><h3>18°</h3></footer>
+            </article>
+            <article class="card mini-card">
+                <header><h2>DOM</h2></header>
+                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/day.svg" alt="Sunny">
+                <footer><h3>19°</h3></footer>
+            </article>
+            <article class="card mini-card">
+                <header><h2>LUN</h2></header>
+                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-2.svg" alt="Cloudy">
+                <footer><h3>17°</h3></footer>
+            </article>
+            <article class="card mini-card">
+                <header><h2>MAR</h2></header>
+                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-3.svg" alt="Rainy">
+                <footer><h3>15°</h3></footer>
+            </article>
+            <article class="card mini-card">
+                <header><h2>MIÉ</h2></header>
+                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-1.svg" alt="Rainy">
+                <footer><h3>14°</h3></footer>
+            </article>
+        </div>
+        
         <section class="card map-overview-card">
             <h3>Vista del Mapa</h3>
             <div id="mi_mapa"></div>
         </section>
+
         <section class="card day-summary-card">
             <h3>Resumen Próximas Horas</h3>
             <div class="summary-graph">

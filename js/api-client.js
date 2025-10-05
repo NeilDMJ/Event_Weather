@@ -22,7 +22,7 @@ class WeatherAPIClient {
         
         // URLs conocidas del backend (actualizar según deployment real)
         const possibleBackends = [
-            'https://servios.utm.mx/apiclima'
+            'https://servicios.utm.mx/apiclima'
         ];
         
         // Por ahora retornar la primera opción (actualizar después de verificar cuál funciona)

@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FUNCIONES PARA COMUNICAR CON LA API BACKEND ---
     async function sendDataToApi({ date, name, region, country, lat, lon }) {
         // Normalizamos lat lon numéricos
-        const url = new URL('http://localhost:8000/predict');
+        const url = new URL('http://localhost:8004/predict');
         url.searchParams.append('lat', lat);
         url.searchParams.append('lon', lon);
         url.searchParams.append('date', date);
@@ -334,59 +334,115 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initializeApp();
+    
+    function updateMiniCardsWithPrediction(prediction1, prediction2) {
+        const miniCards = document.querySelectorAll('.mini-card');
+        const predictions = [prediction1, prediction2];
 
+        predictions.forEach((pred, index) => {
+            const card = miniCards[index];
+            if (!card) return;
+
+            if (pred && pred.predictions) {
+                const dateObj = new Date(pred.prediction_date + 'T12:00:00');
+                const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.', '');
+                
+                card.querySelector('header h2').textContent = dayName;
+                card.querySelector('footer h3').textContent = `${Math.round(pred.predictions.temperature_c)}°`;
+                
+                // Limpiamos y mostramos los detalles
+                const details = card.querySelector('.details');
+                details.innerHTML = `
+                    <p>Humedad: ${Math.round(pred.predictions.humidity_percent)}%</p>
+                    <p>Viento: ${Math.round(pred.predictions.wind_speed_ms * 3.6)} km/h</p>
+                `;
+
+                // Puedes añadir un ícono si tu API lo proveyera o usar uno por defecto
+                // card.querySelector('img').src = 'path/to/icon.svg';
+
+                card.style.display = 'flex';
+            } else {
+                // Oculta la tarjeta si no hay datos de predicción
+                card.style.display = 'none';
+            }
+        });
+    }
+
+
+    /**
+     * Maneja la búsqueda de predicción por coordenadas y fecha.
+     */
     async function handleCoordinateSearch(event) {
-        // Prevenir que el formulario recargue la página
         event.preventDefault(); 
         
-        // 1. Obtener los valores de los inputs
-        const latInput = document.getElementById('lat-input');
-        const lonInput = document.getElementById('lon-input');
-        const dateInput = document.getElementById('date-input'); // El input de fecha del formulario
+        const lat = parseFloat(document.getElementById('lat-input').value);
+        const lon = parseFloat(document.getElementById('lon-input').value);
+        const dateString = document.getElementById('date-input').value;
 
-        const lat = parseFloat(latInput.value);
-        const lon = parseFloat(lonInput.value);
-        const date = dateInput.value;
-
-        // 2. Validar que los datos no estén vacíos y sean correctos
-        if (isNaN(lat) || isNaN(lon) || !date) {
+        if (isNaN(lat) || isNaN(lon) || !dateString) {
             alert('Por favor, introduce una latitud, longitud y fecha válidas.');
             return;
         }
 
-        console.log(`Buscando predicción para Lat: ${lat}, Lon: ${lon}, Fecha: ${date}`);
-
-        // Muestra un indicador de carga
+        console.log(`Buscando predicción para Lat: ${lat}, Lon: ${lon}, Fecha: ${dateString}`);
         mainCard.temp.textContent = '..°';
         
+        // --- INICIO DE LA MODIFICACIÓN ---
+
+        // 1. Crear las fechas para los próximos dos días
+        const baseDate = new Date(dateString + 'T12:00:00');
+        
+        const tomorrow = new Date(baseDate);
+        tomorrow.setDate(baseDate.getDate() + 1);
+        const dayAfterTomorrow = new Date(baseDate);
+        dayAfterTomorrow.setDate(baseDate.getDate() + 2);
+
+        // Formatear las fechas a YYYY-MM-DD para la API
+        const formatDate = (d) => d.toISOString().split('T')[0];
+        const date1 = formatDate(tomorrow);
+        const date2 = formatDate(dayAfterTomorrow);
+
+        // 2. Actualizar la tarjeta principal inmediatamente
         try {
-            // 3. Llamar a la API para obtener la predicción (de api-integration.js)
-            const prediction = await getEnhancedPrediction(lat, lon, date);
+            const dayName = baseDate.toLocaleDateString('es-ES', { weekday: 'long' });
+            mainCard.day.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            mainCard.date.textContent = baseDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+        } catch(e) { console.error("Fecha inválida:", e); }
 
+        // 3. Realizar las 3 peticiones a la API en paralelo para mayor eficiencia
+        try {
+            const [
+                prediction, 
+                predictionDay1, 
+                predictionDay2
+            ] = await Promise.all([
+                getEnhancedPrediction(lat, lon, dateString),
+                getEnhancedPrediction(lat, lon, date1),
+                getEnhancedPrediction(lat, lon, date2)
+            ]);
+
+            // 4. Actualizar la UI con todos los datos recibidos
             if (prediction && prediction.predictions) {
-                // 4. Actualizar la interfaz con los nuevos datos (de api-integration.js)
-                displayPredictionData(prediction);
-
-                // 5. Actualizar el título de la ubicación principal
+                displayPredictionData(prediction); // Actualiza la card principal y el panel de detalles
+                updateMiniCardsWithPrediction(predictionDay1, predictionDay2); // Nueva función para las minicards
                 locationNameElement.textContent = `Coordenadas: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
                 
-                // 6. Actualizar la vista del mapa (la variable 'map' es accesible aquí)
                 if (map) {
                     updateMap(lat, lon, `Predicción para ${lat.toFixed(2)}, ${lon.toFixed(2)}`);
                 }
             } else {
-                alert('No se pudo obtener la predicción para la ubicación y fecha seleccionadas.');
-                mainCard.temp.textContent = '--°'; // Restaura a un estado de error
+                alert('No se pudo obtener la predicción principal.');
+                mainCard.temp.textContent = '--°';
             }
         } catch (error) {
             console.error('Error en la búsqueda por coordenadas:', error);
-            alert('Ocurrió un error al contactar al servidor. Inténtalo de nuevo.');
+            alert('Ocurrió un error al contactar al servidor.');
             mainCard.temp.textContent = '--°';
         }
+        // --- FIN DE LA MODIFICACIÓN ---
     }
 
-    // --- CONECTAR LA FUNCIÓN AL FORMULARIO ---
-    // Busca el formulario por su ID. Debes agregar id="coordinate-form" a tu <form>
+    // Asegúrate de que el listener del formulario sigue aquí
     const coordinateForm = document.getElementById('coordinate-form'); 
     if (coordinateForm) {
         coordinateForm.addEventListener('submit', handleCoordinateSearch);
@@ -495,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function attemptBackendAuth(path, body) {
         try {
-            const url = new URL(`http://localhost:8000/${path}`);
+            const url = new URL(`http://localhost:8004/${path}`);
             const resp = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(body) });
             if (!resp.ok) throw new Error(await resp.text());
             return await resp.json();

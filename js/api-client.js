@@ -17,7 +17,7 @@ class WeatherAPIClient {
     detectBackendURL() {
         // Primero verificar si estamos en desarrollo local
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:8000';
+            return 'http://localhost:8004';
         }
         
         // URLs conocidas del backend (actualizar según deployment real)

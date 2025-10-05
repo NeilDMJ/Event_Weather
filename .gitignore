@@ -60,6 +60,6 @@ Thumbs.db
 htmlcov/
 
 # Model files (optional - uncomment if models are too large)
-# *.pkl
-# *.h5
-# *.model
+ *.pkl
+ *.h5
+ *.model

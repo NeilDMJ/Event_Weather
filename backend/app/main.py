@@ -1,8 +1,10 @@
-# backend/app/main.py
+# backend/app/main.py - Event Weather API con base de datos PostgreSQL
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from dotenv import load_dotenv
+import os
+from app.ml.enhanced_climate_predictor import EnhancedClimatePredictor
 from app.services.nasapower import (
     get_climate_projection,
     get_complete_climate_projection,
@@ -10,403 +12,194 @@ from app.services.nasapower import (
     get_atmospheric_projection,
     get_solar_projection
 )
-from app.ml.climate_predictor_functional import ClimatePredictor, obtener_o_entrenar_modelo
 from app.services.gemini_service import get_gemini_service
-import pandas as pd
-import numpy as np
 
-# Cargar variables de entorno desde .env
+# Cargar variables de entorno
 load_dotenv()
 
 app = FastAPI(
-    title="Will It Rain On My Parade - NASA Space Apps",
-    description="API que obtiene proyecciones climáticas desde NASA POWER y predicciones ML",
-    version="2.0.0"
+    title="Event Weather - Enhanced ML API",
+    description="API con predicciones ML usando base de datos PostgreSQL",
+    version="2.1.0"
 )
 
-# Permitir peticiones desde el frontend (por ejemplo, React, etc.)
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # puedes restringirlo luego a tu dominio
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Inicializar predictor mejorado
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://eventweather_user:eventweather_pass@localhost:5432/eventweather_db")
+enhanced_predictor = EnhancedClimatePredictor(DATABASE_URL)
+
+@app.on_event("startup")
+async def startup_event():
+    """Inicializar conexiones al startup"""
+    await enhanced_predictor.initialize()
+    print("🚀 Enhanced Climate Predictor inicializado con base de datos")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Limpiar recursos al shutdown"""
+    await enhanced_predictor.cleanup()
+    print("🛑 Enhanced Climate Predictor desconectado")
+
 @app.get("/")
 async def root():
-    """
-    Endpoint de bienvenida que muestra información básica de la API.
-    """
+    """Información de la API"""
+    stats = await enhanced_predictor.get_stats()
     return {
-        "message": "Will It Rain On My Parade - NASA Space Apps API",
-        "description": "API que obtiene proyecciones climáticas desde NASA POWER, predicciones ML y análisis con Gemini AI",
-        "version": "2.0",
+        "message": "Event Weather - Enhanced ML API",
+        "version": "2.1.0",
+        "database_enabled": enhanced_predictor.use_database,
+        "status": "online",
+        "database_stats": stats,
         "endpoints": {
-            "climate": "/climate?lat={latitude}&lon={longitude}&start={year}&end={year}",
-            "climate_complete": "/climate/complete?lat={latitude}&lon={longitude}&start={year}&end={year}",
-            "predict_future": "/predict?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}",
-            "ai_description": "/predict/ai-description?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}",
-            "event_planning": "/predict/event-planning?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}&event_type={type}",
-            "summary": "/predict/summary?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}",
-            "docs": "/docs",
-            "openapi": "/openapi.json"
-        },
-        "examples": {
-            "historical_data": "/climate?lat=17.866667&lon=-97.783333&start=2020&end=2025",
-            "future_prediction": "/predict?lat=17.8270&lon=-97.8043&date=2025-12-25",
-            "ai_description": "/predict/ai-description?lat=17.8270&lon=-97.8043&date=2025-12-25",
-            "event_planning": "/predict/event-planning?lat=17.8270&lon=-97.8043&date=2025-12-25&event_type=wedding"
+            "predict": "/predict?lat=17.827&lon=-97.8043&date=2025-12-25",
+            "stats": "/stats",
+            "health": "/health"
         }
     }
 
-@app.get("/climate")
-async def get_climate_data(
-    lat: float = Query(..., description="Latitud en grados decimales"),
-    lon: float = Query(..., description="Longitud en grados decimales"),
-    start: int = Query(2020, description="Año de inicio del rango"),
-    end: int = Query(2025, description="Año de fin del rango"),
+@app.get("/predict")
+async def predict_climate(
+    lat: float = Query(..., description="Latitud", ge=-90, le=90),
+    lon: float = Query(..., description="Longitud", ge=-180, le=180),
+    date: str = Query(..., description="Fecha de predicción (YYYY-MM-DD)")
 ):
     """
-    Devuelve la proyección climática (precipitación total mensual)
-    para la ubicación y rango de años especificados.
+    Predecir clima usando modelos ML de base de datos
+    
+    Busca automáticamente los mejores modelos disponibles para la ubicación
+    y genera predicciones optimizadas por precisión y proximidad geográfica.
     """
+    try:
+        # Validar formato de fecha
+        datetime.strptime(date, '%Y-%m-%d')
+        
+        # Hacer predicción mejorada
+        prediction = await enhanced_predictor.predict_climate(lat, lon, date)
+        
+        if not prediction.get('success', False):
+            raise HTTPException(status_code=404, detail="No se pudieron generar predicciones para esta ubicación")
+        
+        return prediction
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
-    data = await get_climate_projection(lat, lon, start, end)
-    return {"location": {"lat": lat, "lon": lon}, "projection": data}
+@app.get("/stats")
+async def get_database_stats():
+    """Obtener estadísticas de la base de datos de modelos"""
+    try:
+        stats = await enhanced_predictor.get_stats()
+        return {
+            "success": True,
+            "database_stats": stats,
+            "generated_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error obteniendo estadísticas: {str(e)}")
 
+@app.get("/health")
+async def health_check():
+    """Health check de la API y base de datos"""
+    try:
+        # Verificar conexión a base de datos
+        stats = await enhanced_predictor.get_stats()
+        
+        return {
+            "status": "healthy",
+            "database_connected": enhanced_predictor.use_database,
+            "total_models": stats.get('total_models', 0),
+            "timestamp": datetime.now().isoformat(),
+            "version": "2.1.0"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded", 
+            "error": str(e),
+            "database_connected": False,
+            "timestamp": datetime.now().isoformat()
+        }
+
+# Mantener endpoints originales para compatibilidad
+@app.get("/climate")
+async def get_climate_data(
+    lat: float = Query(..., description="Latitud"),
+    lon: float = Query(..., description="Longitud"), 
+    start: int = Query(2020, description="Año inicial"),
+    end: int = Query(2025, description="Año final")
+):
+    """Obtener datos climáticos (endpoint original mantenido)"""
+    try:
+        data = await get_climate_projection(lat, lon, start, end)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/climate/complete")
 async def get_complete_climate_data(
-    lat: float = Query(..., description="Latitud en grados decimales"),
-    lon: float = Query(..., description="Longitud en grados decimales"),
-    start: int = Query(2020, description="Año de inicio del rango"),
-    end: int = Query(2030, description="Año de fin del rango"),
+    lat: float = Query(..., description="Latitud"),
+    lon: float = Query(..., description="Longitud"),
+    start: int = Query(2020, description="Año inicial"), 
+    end: int = Query(2030, description="Año final")
 ):
-    """
-    Devuelve la proyección climática completa (precipitación total mensual)
-    para la ubicación y rango de años especificados.
-
-    Incluye:
-    - Precipitación (PRECTOTCORR)
-    - Temperatura (T2M, T2M_MAX, T2M_MIN)
-    - Humedad relativa (RH2M)
-    - Velocidad del viento (WS2M)
-    - Presión superficial (PS)
-    - Nubosidad (CLOUD_AMT)
-    """
-    data = await get_complete_climate_projection(lat, lon, start, end)
-    return {"location": {"lat": lat, "lon": lon}, "projection": data}
+    """Datos climáticos completos"""
+    try:
+        data = await get_complete_climate_projection(lat, lon, start, end)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/climate/temperature")
-async def get_temperatura_data(
-    lat: float = Query(...,description="Latitud en grados decimales"),
-    lon: float = Query(..., description="Longitud en grados decimales"),
-    start: int = Query(2020, description="Año de inicio del rango"),
-    end: int = Query(2030, description="Año de fin del rango"),
+async def get_temperature_data(
+    lat: float = Query(..., description="Latitud"),
+    lon: float = Query(..., description="Longitud"),
+    start: int = Query(2020, description="Año inicial"),
+    end: int = Query(2030, description="Año final")
 ):
-    """
-    Temperatura a 2 metros : T2M, T2M_MAX, T2M_MIN
-    """
-    data = await get_temperature_projection(lat, lon, start, end)
-    return {"location": {"lat": lat, "lon": lon}, "projection": data}
+    """Datos de temperatura"""
+    try:
+        data = await get_temperature_projection(lat, lon, start, end)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/climate/atmosferic")
-async def get_atmosferic_data(
-    lat: float = Query(...,description="Latitud en grados decimales"),
-    lon: float = Query(...,description="Longitud en grados decimales"),
-    start: int = Query(2020, description="Año de inicio del rango"),
-    end: int = Query(2030, description="Año de fin del rango"),
+async def get_atmospheric_data(
+    lat: float = Query(..., description="Latitud"),
+    lon: float = Query(..., description="Longitud"),
+    start: int = Query(2020, description="Año inicial"),
+    end: int = Query(2030, description="Año final")
 ):
-    """
-    Datos atmosféricos:
-    - Humedad relativa (RH2M)
-    - Velocidad del viento (WS2M, WS10M, WS50M)
-    - Dirección del viento (WD2M, WD10M, WD50M)
-    - Presión superficial (PS)
-    """
-    data = await get_atmospheric_projection(lat, lon, start, end)
-    return {"location": {"lat": lat, "lon": lon}, "projection": data}
+    """Datos atmosféricos"""
+    try:
+        data = await get_atmospheric_projection(lat, lon, start, end)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/climate/solar")
 async def get_solar_data(
-    lat: float = Query(..., description ="Latitud en grados decimales"),
-    lon : float = Query(..., description="Longitud en grados decimales"),
-    start: int = Query(2020, description="Año de inicio del rango"),
-    end: int = Query(2030, description="Año de fin del rango"),
+    lat: float = Query(..., description="Latitud"),
+    lon: float = Query(..., description="Longitud"),
+    start: int = Query(2020, description="Año inicial"),
+    end: int = Query(2030, description="Año final")
 ):
-    """Datos solares:
-    Datos de radiación solar:
-    - Irradiancia de onda corta (ALLSKY_SFC_SW_DWN)
-    - Irradiancia de onda larga (ALLSKY_SFC_LW_DWN)
-    - Nubosidad (CLOUD_AMT)
-    """ 
-    data = await get_solar_projection(lat, lon, start, end)
-    return {"location": {"lat": lat, "lon": lon}, "projection": data}
-
-@app.get("/predict")
-async def predict_future_climate(
-    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
-    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
-    date: str = Query(..., description="Fecha futura en formato YYYY-MM-DD", example="2025-12-25"),
-):
-    
-    # Validar formato de fecha
+    """Datos solares"""
     try:
-        target_date = datetime.strptime(date, "%Y-%m-%d")
-        if target_date <= datetime.now():
-            raise HTTPException(
-                status_code=400, 
-                detail="La fecha debe ser futura. Use formato YYYY-MM-DD."
-            )
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="Formato de fecha inválido. Use YYYY-MM-DD (ejemplo: 2025-12-25)."
-        )
-    
-    try:
-        # Coordenadas del punto objetivo
-        coordenadas = (lat, lon)
-        
-        # Obtener o entrenar modelo para las coordenadas
-        modelos = await obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100)
-        
-        if not modelos:
-            raise HTTPException(
-                status_code=500,
-                detail="No se pudo obtener o entrenar un modelo para esta ubicación"
-            )
-        
-        # Preparar características para predicción
-        year = target_date.year
-        month = target_date.month
-        
-        # Características temporales cíclicas
-        month_sin = np.sin(2 * np.pi * month / 12)
-        month_cos = np.cos(2 * np.pi * month / 12)
-        
-        # Crear DataFrame con características para predicción (sin Season)
-        features = pd.DataFrame([{
-            'Year': year,
-            'Month': month,
-            'Latitude': lat,
-            'Longitude': lon,
-            'Month_sin': month_sin,
-            'Month_cos': month_cos
-        }])
-        
-        # Hacer predicciones con cada modelo
-        predicciones = {}
-        
-        # Mapeo de nombres de parámetros para la respuesta
-        param_names = {
-            'Precipitation_mm_per_day': 'precipitation_mm_per_day',
-            'Temperature_C': 'temperature_c',
-            'Temperature_Max_C': 'temperature_max_c',
-            'Temperature_Min_C': 'temperature_min_c',
-            'Humidity_Percent': 'humidity_percent',
-            'Wind_Speed_ms': 'wind_speed_ms',
-            'Pressure_kPa': 'pressure_kpa',
-            'Cloud_Cover_Percent': 'cloud_cover_percent'
-        }
-        
-        # Valores por defecto en caso de error
-        default_values = {
-            'precipitation_mm_per_day': 2.0,
-            'temperature_c': 23.0,
-            'temperature_max_c': 29.0,
-            'temperature_min_c': 17.0,
-            'humidity_percent': 65.0,
-            'wind_speed_ms': 2.0,
-            'pressure_kpa': 80.0,
-            'cloud_cover_percent': 50.0
-        }
-        
-        for param_model_name, modelo in modelos.items():
-            try:
-                pred_value = modelo.predict(features)[0]
-                
-                # Limpiar nombre del parámetro (quitar timestamp si existe)
-                clean_param_name = param_model_name
-                if '_20251004' in clean_param_name:
-                    clean_param_name = clean_param_name.split('_20251004')[0]
-                
-                # Convertir nombre del parámetro
-                response_name = param_names.get(clean_param_name, clean_param_name.lower())
-                predicciones[response_name] = round(float(pred_value), 3)
-                
-            except Exception as e:
-                # Usar valor por defecto solo si no hay predicción
-                clean_param_name = param_model_name
-                if '_20251004' in clean_param_name:
-                    clean_param_name = clean_param_name.split('_20251004')[0]
-                
-                response_name = param_names.get(clean_param_name, clean_param_name.lower())
-                if response_name in default_values and response_name not in predicciones:
-                    predicciones[response_name] = default_values[response_name]
-        
-        # Solo agregar valores por defecto para parámetros que no tuvieron predicción
-        for response_name, default_val in default_values.items():
-            if response_name not in predicciones:
-                predicciones[response_name] = default_val
-        
-        # Preparar respuesta sin model_info
-        response = {
-            "success": True,
-            "location": {
-                "latitude": lat,
-                "longitude": lon
-            },
-            "prediction_date": date,
-            "predictions": predicciones,
-            "generated_at": datetime.now().isoformat()
-        }
-        
-        return response
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
+        data = await get_solar_projection(lat, lon, start, end)
+        return data
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno del servidor durante la predicción: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/predict/ai-description")
-async def predict_with_ai_description(
-    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
-    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
-    date: str = Query(..., description="Fecha futura en formato YYYY-MM-DD", example="2025-12-25"),
-):
-    """
-    OPTIMIZADO: Obtiene la predicción climática y genera una descripción detallada usando Gemini AI.
-    
-    Este endpoint combina:
-    1. Predicción climática numérica del modelo ML
-    2. Análisis y descripción generada por Gemini AI
-    
-    Retorna un análisis completo del clima esperado con recomendaciones prácticas.
-    """
-    try:
-        # OPTIMIZACIÓN: Obtener predicción y servicio Gemini en paralelo
-        import asyncio
-        
-        # Ejecutar predicción y obtener servicio simultáneamente
-        prediction_task = predict_future_climate(lat, lon, date)
-        gemini_service = get_gemini_service()
-        
-        # Esperar solo por la predicción
-        prediction_response = await prediction_task
-        
-        # Generar descripción con Gemini (ya optimizado internamente)
-        ai_response = await gemini_service.generate_climate_description(prediction_response)
-        
-        return ai_response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generando descripción con AI: {str(e)}"
-        )
-
-
-@app.get("/predict/event-planning")
-async def predict_for_event_planning(
-    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
-    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
-    date: str = Query(..., description="Fecha del evento en formato YYYY-MM-DD", example="2025-12-25"),
-    event_type: str = Query(
-        "outdoor",
-        description="Tipo de evento (outdoor, sports, wedding, concert, festival, etc.)",
-        example="wedding"
-    ),
-):
-    """
-    Análisis climático especializado para planificación de eventos usando Gemini AI.
-    
-    Este endpoint proporciona:
-    1. Predicción climática numérica
-    2. Análisis de viabilidad del evento
-    3. Riesgos climáticos específicos
-    4. Recomendaciones prácticas para el tipo de evento
-    5. Plan de contingencia
-    
-    Tipos de eventos soportados:
-    - outdoor: Eventos al aire libre generales
-    - sports: Eventos deportivos
-    - wedding: Bodas
-    - concert: Conciertos
-    - festival: Festivales
-    - beach: Eventos en playa
-    - hiking: Caminatas/senderismo
-    """
-    try:
-        # Obtener predicción climática
-        prediction_response = await predict_future_climate(lat, lon, date)
-        
-        # Obtener el servicio de Gemini
-        gemini_service = get_gemini_service()
-        
-        # Generar análisis para planificación de eventos
-        ai_response = await gemini_service.generate_event_planning_advice(
-            prediction_response,
-            event_type
-        )
-        
-        return ai_response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generando análisis de evento: {str(e)}"
-        )
-
-
-@app.get("/predict/summary")
-async def predict_with_summary(
-    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
-    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
-    date: str = Query(..., description="Fecha futura en formato YYYY-MM-DD", example="2025-12-25"),
-):
-    """
-    Obtiene la predicción climática con un resumen corto y conciso generado por Gemini AI.
-    
-    Ideal para:
-    - Notificaciones push
-    - Resúmenes rápidos
-    - Interfaces móviles
-    - Mensajes de texto
-    
-    Retorna un resumen de 2-3 oraciones del clima esperado.
-    """
-    try:
-        # Obtener predicción climática
-        prediction_response = await predict_future_climate(lat, lon, date)
-        
-        # Obtener el servicio de Gemini
-        gemini_service = get_gemini_service()
-        
-        # Generar resumen simple
-        summary_response = await gemini_service.generate_simple_summary(prediction_response)
-        
-        # Combinar predicción con resumen
-        return {
-            **prediction_response,
-            "ai_summary": summary_response.get("summary", ""),
-            "ai_generated_at": summary_response.get("generated_at", "")
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generando resumen: {str(e)}"
-        )
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

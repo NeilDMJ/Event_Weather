@@ -8,4 +8,6 @@ joblib
 requests
 google-generativeai
 python-dotenv
+asyncpg
+psycopg2-binary
 

@@ -158,11 +158,11 @@ Resume el clima esperado en 4 lineas. Incluye recomendaciones practicas."""
         
         prompt = f"""Eres un consultor experto en planificación de eventos. Analiza las condiciones climáticas predichas para un evento tipo "{event_type}".
 
-📍 **Ubicación del Evento:** Latitud {lat}, Longitud {lon}
-📅 **Fecha del Evento:** {date}
-🎪 **Tipo de Evento:** {event_type}
+**Ubicación del Evento:** Latitud {lat}, Longitud {lon}
+**Fecha del Evento:** {date}
+**Tipo de Evento:** {event_type}
 
-📊 **Pronóstico Climático:**
+**Pronóstico Climático:**
 - Temperatura: {temp_min}°C - {temp_max}°C (promedio {temp}°C)
 - Humedad: {humidity}%
 - Precipitación: {precipitation} mm

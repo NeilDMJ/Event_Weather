@@ -3,7 +3,7 @@
 # Script para iniciar el proyecto completo
 # Uso: ./start-project.sh
 
-echo "🚀 Iniciando Weather Prediction App..."
+echo " Iniciando Weather Prediction App..."
 echo "======================================"
 
 # Directorio base del proyecto
@@ -13,8 +13,8 @@ FRONTEND_DIR="$PROJECT_DIR/frontend"
 
 # Verificar que estamos en el directorio correcto
 if [ ! -d "$PROJECT_DIR" ]; then
-    echo "❌ Error: No se encontró el directorio del proyecto en $PROJECT_DIR"
-    exit 1
+    echo " Error: No se encontró el directorio del proyecto en $PROJECT_DIR"
+    exit 
 fi
 
 echo "📁 Directorio del proyecto: $PROJECT_DIR"
@@ -22,58 +22,58 @@ echo "📁 Directorio del proyecto: $PROJECT_DIR"
 # Función para iniciar el backend
 start_backend() {
     echo ""
-    echo "🔧 Iniciando Backend FastAPI..."
+    echo " Iniciando Backend FastAPI..."
     echo "--------------------------------"
     
     cd "$BACKEND_DIR"
     
     # Verificar que existe el entorno virtual
     if [ ! -d "env" ]; then
-        echo "❌ Error: No se encontró el entorno virtual en $BACKEND_DIR/env"
+        echo " Error: No se encontró el entorno virtual en $BACKEND_DIR/env"
         echo "   Crea el entorno virtual primero: python -m venv env"
-        exit 1
+        exit 
     fi
     
     # Activar entorno virtual e iniciar servidor
     source env/bin/activate
     
-    echo "📦 Entorno virtual activado"
-    echo "🌐 Iniciando servidor en http://localhost:8000"
-    echo "📚 Documentación disponible en http://localhost:8000/docs"
+    echo " Entorno virtual activado"
+    echo " Iniciando servidor en http://localhost:"
+    echo " Documentación disponible en http://localhost:/docs"
     echo ""
     echo "Para detener el servidor, presiona Ctrl+C"
     echo "=============================================="
     
     # Iniciar servidor FastAPI
-    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    uvicorn app.main:app --reload --host ... --port 
 }
 
 # Función para iniciar el frontend
 start_frontend() {
     echo ""
-    echo "🎨 Iniciando Frontend..."
+    echo " Iniciando Frontend..."
     echo "------------------------"
     
     cd "$FRONTEND_DIR"
     
-    echo "🌐 Servidor frontend disponible en http://localhost:3000"
-    echo "🧪 Página de pruebas en http://localhost:3000/test-api.html"
+    echo " Servidor frontend disponible en http://localhost:"
+    echo "🧪 Página de pruebas en http://localhost:/test-api.html"
     echo ""
     echo "Para detener el servidor, presiona Ctrl+C"
     echo "==========================================="
     
     # Iniciar servidor HTTP simple
-    python3 -m http.server 3000
+    python -m http.server 
 }
 
 # Función para mostrar ayuda
 show_help() {
     echo ""
-    echo "Uso: $0 [opción]"
+    echo "Uso: $ [opción]"
     echo ""
     echo "Opciones:"
-    echo "  backend     Iniciar solo el backend (puerto 8000)"
-    echo "  frontend    Iniciar solo el frontend (puerto 3000)"
+    echo "  backend     Iniciar solo el backend (puerto )"
+    echo "  frontend    Iniciar solo el frontend (puerto )"
     echo "  test        Abrir página de pruebas de la API"
     echo "  help        Mostrar esta ayuda"
     echo ""
@@ -84,13 +84,13 @@ show_help() {
 # Función para mostrar URLs importantes
 show_urls() {
     echo ""
-    echo "🔗 URLs importantes:"
+    echo " URLs importantes:"
     echo "==================="
-    echo "🔧 Backend API:              http://localhost:8000"
-    echo "📚 Documentación API:        http://localhost:8000/docs"
-    echo "🎨 Frontend:                 http://localhost:3000"
-    echo "🧪 Pruebas API:              http://localhost:3000/test-api.html"
-    echo "📊 Dashboard original:       http://localhost:3000/index.html"
+    echo " Backend API:              http://localhost:"
+    echo " Documentación API:        http://localhost:/docs"
+    echo " Frontend:                 http://localhost:"
+    echo "🧪 Pruebas API:              http://localhost:/test-api.html"
+    echo " Dashboard original:       http://localhost:/index.html"
     echo ""
 }
 
@@ -99,16 +99,16 @@ open_test_page() {
     echo "🧪 Abriendo página de pruebas..."
     
     if command -v xdg-open > /dev/null; then
-        xdg-open "http://localhost:3000/test-api.html"
+        xdg-open "http://localhost:/test-api.html"
     elif command -v open > /dev/null; then
-        open "http://localhost:3000/test-api.html"
+        open "http://localhost:/test-api.html"
     else
-        echo "📋 Abre manualmente: http://localhost:3000/test-api.html"
+        echo " Abre manualmente: http://localhost:/test-api.html"
     fi
 }
 
 # Procesar argumentos
-case "$1" in
+case "$" in
     "backend")
         start_backend
         ;;
@@ -124,25 +124,25 @@ case "$1" in
     "")
         echo "Para iniciar el proyecto completo:"
         echo ""
-        echo "1️⃣  Terminal 1 - Backend:"
+        echo "  Terminal  - Backend:"
         echo "   cd $BACKEND_DIR"
         echo "   source env/bin/activate"
-        echo "   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+        echo "   uvicorn app.main:app --reload --host ... --port "
         echo ""
-        echo "2️⃣  Terminal 2 - Frontend:"
+        echo "  Terminal  - Frontend:"
         echo "   cd $FRONTEND_DIR"
-        echo "   python3 -m http.server 3000"
+        echo "   python -m http.server "
         echo ""
         echo "O usa los comandos directos:"
-        echo "   $0 backend    # Solo backend"
-        echo "   $0 frontend   # Solo frontend"
-        echo "   $0 test       # Abrir pruebas"
+        echo "   $ backend    # Solo backend"
+        echo "   $ frontend   # Solo frontend"
+        echo "   $ test       # Abrir pruebas"
         
         show_urls
         ;;
     *)
-        echo "❌ Opción desconocida: $1"
+        echo " Opción desconocida: $"
         show_help
-        exit 1
+        exit 
         ;;
 esac

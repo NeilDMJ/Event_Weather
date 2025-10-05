@@ -121,13 +121,13 @@ function showPredictionDetails(prediction) {
         <div style="font-weight: bold; margin-bottom: 10px; color: #4CAF50;">
             🤖 Predicción ML - ${prediction.prediction_date}
         </div>
-        <div><strong>📍 Ubicación:</strong> ${prediction.location.latitude}, ${prediction.location.longitude}</div>
-        <div><strong>🌡️ Temperatura:</strong> ${pred.temperature_c}°C</div>
-        <div><strong>🌡️ Máx/Mín:</strong> ${pred.temperature_max_c}°C / ${pred.temperature_min_c}°C</div>
-        <div><strong>🌧️ Precipitación:</strong> ${pred.precipitation_mm_per_day} mm/día</div>
-        <div><strong>💨 Viento:</strong> ${pred.wind_speed_ms} m/s</div>
-        <div><strong>💧 Humedad:</strong> ${pred.humidity_percent}%</div>
-        <div><strong>☁️ Nubosidad:</strong> ${pred.cloud_cover_percent}%</div>
+        <div><strong>Ubicación:</strong> ${prediction.location.latitude}, ${prediction.location.longitude}</div>
+        <div><strong>Temperatura:</strong> ${pred.temperature_c}°C</div>
+        <div><strong>Máx/Mín:</strong> ${pred.temperature_max_c}°C / ${pred.temperature_min_c}°C</div>
+        <div><strong>Precipitación:</strong> ${pred.precipitation_mm_per_day} mm/día</div>
+        <div><strong>Viento:</strong> ${pred.wind_speed_ms} m/s</div>
+        <div><strong>Humedad:</strong> ${pred.humidity_percent}%</div>
+        <div><strong>Nubosidad:</strong> ${pred.cloud_cover_percent}%</div>
         <div style="margin-top: 10px; font-size: 10px; color: #ccc;">
             Generado: ${new Date(prediction.generated_at).toLocaleString()}
         </div>

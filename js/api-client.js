@@ -8,7 +8,7 @@ class WeatherAPIClient {
         // Auto-detectar backend o usar modo demo
         this.baseURL = baseURL || this.detectBackendURL();
         this.isProduction = !this.baseURL.includes('localhost');
-        console.log(`🌐 API configurada en: ${this.baseURL}`);
+        console.log(`API configurada en: ${this.baseURL}`);
     }
 
     /**
@@ -38,7 +38,7 @@ class WeatherAPIClient {
     async request(endpoint, options = {}) {
         try {
             const url = `${this.baseURL}${endpoint}`;
-            console.log(`🌐 Petición a: ${url}`);
+            console.log(`Petición a: ${url}`);
             
             const response = await fetch(url, {
                 headers: {
@@ -53,11 +53,11 @@ class WeatherAPIClient {
             }
 
             const data = await response.json();
-            console.log('✅ Respuesta recibida:', data);
+            console.log('Respuesta recibida:', data);
             return data;
             
         } catch (error) {
-            console.warn('❌ Error en petición (usando datos mock):', error);
+            console.warn('Error en petición (usando datos mock):', error);
             // Retornar datos mock para development/demo
             return this.getMockData(endpoint);
         }

@@ -89,13 +89,13 @@ def train_climate_models(df):
     
     for param in TARGET_PARAMETERS:
         if param not in df.columns:
-            print(f"  ⚠️  Parámetro {param} no encontrado en datos")
+            print(f"  Parámetro {param} no encontrado en datos")
             continue
             
         # Verificar que hay suficientes datos
         y = df[param]
         if len(y) < 50:
-            print(f"  ⚠️  {param}: Insuficientes datos ({len(y)} muestras)")
+            print(f"  {param}: Insuficientes datos ({len(y)} muestras)")
             continue
         
         # Entrenar modelo
@@ -105,7 +105,7 @@ def train_climate_models(df):
             models[param] = model
             all_metrics[param] = metrics
     
-    print(f"✅ Entrenamiento completado: {len(models)}/{len(TARGET_PARAMETERS)} modelos exitosos")
+    print(f"Entrenamiento completado: {len(models)}/{len(TARGET_PARAMETERS)} modelos exitosos")
     return models, all_metrics
 
 
@@ -137,5 +137,5 @@ def save_models(models, location, models_dir="../models/trained"):
         saved_files.append(info_filename)
         print(f"✓ Modelo guardado: {param_name}")
     
-    print(f"💾 Total archivos guardados: {len(saved_files)} en {models_dir}")
+    print(f"Total archivos guardados: {len(saved_files)} en {models_dir}")
     return saved_files

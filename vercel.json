@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "event-weather-dashboard",
+  "name": "weather-forecast-app",
   "public": true,
   "routes": [
     {

@@ -1,0 +1,5 @@
+Modelo: Wind_Speed_ms
+Algoritmo: GradientBoostingRegressor
+Ubicación entrenamiento: 40.0, 74.0
+Fecha entrenamiento: 2025-10-04T22:33:35.039226
+Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Month_sin', 'Month_cos']

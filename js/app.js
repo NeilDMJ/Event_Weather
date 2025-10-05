@@ -101,8 +101,15 @@ document.addEventListener('DOMContentLoaded', function() {
         mainCard.day.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         mainCard.date.textContent = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
         mainCard.temp.textContent = `${Math.round(selectedDayData.day.avgtemp_c)}°`;
-        mainCard.icon.src = `https:${selectedDayData.day.condition.icon}`;
-        mainCard.icon.alt = selectedDayData.day.condition.text;
+        // Evitar parpadeo: precargar icono antes de asignar src
+        (function swapMainIcon(url, altText){
+            const img = new Image();
+            img.onload = () => {
+                mainCard.icon.src = url;
+                mainCard.icon.alt = altText;
+            };
+            img.src = url;
+        })(`https:${selectedDayData.day.condition.icon}`, selectedDayData.day.condition.text);
         mainCard.realFeel.textContent = `Sensación: ${Math.round(selectedDayData.day.avgtemp_c)}°`;
         mainCard.wind.textContent = `Viento: ${selectedDayData.day.maxwind_kph} km/h`;
         mainCard.pressure.textContent = `Presión: ${forecastData.current.pressure_mb}mb`;
@@ -123,8 +130,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const miniDateObj = new Date(dayData.date + 'T12:00:00');
                 
                 miniCard.querySelector('header h2').textContent = miniDateObj.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.', '');
-                miniCard.querySelector('img').src = `https:${dayData.day.condition.icon}`;
-                miniCard.querySelector('img').alt = dayData.day.condition.text;
+                const miniImg = miniCard.querySelector('img');
+                const nextUrl = `https:${dayData.day.condition.icon}`;
+                const pre = new Image();
+                pre.onload = () => { miniImg.src = nextUrl; miniImg.alt = dayData.day.condition.text; };
+                pre.src = nextUrl;
                 miniCard.querySelector('footer h3').textContent = `${Math.round(dayData.day.avgtemp_c)}°`;
                 miniCard.style.display = 'flex';
 
@@ -298,10 +308,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const chartData = { labels: ['4 PM','5 PM','6 PM','7 PM','8 PM','9 PM','10 PM'], datasets: [{ label: 'Temperatura (°C)', data: [24,24,23,22,21,20,19], fill: true, backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', tension: 0.4 }] };
 
     const ctx1 = document.getElementById('summaryChart');
-    new Chart(ctx1, { type: 'line', data: chartData, options: chartOptions });
+    if (ctx1) { new Chart(ctx1, { type: 'line', data: chartData, options: chartOptions }); }
 
     const ctx2 = document.getElementById('newSummaryChart');
-    new Chart(ctx2, { type: 'line', data: chartData, options: chartOptions });
+    if (ctx2) { newSummaryChartInstance = new Chart(ctx2, { type: 'line', data: chartData, options: chartOptions }); }
 
 
     // --- FUNCIÓN DE INICIALIZACIÓN ---

@@ -20,8 +20,8 @@
                 <svg style="fill: white;" viewBox="0 0 96.86 96.86" xmlns="http://www.w3.org/2000/svg"><g data-name="Layer 2"><g data-name="Layer 1"><path d="M32.92,45.4H12.49A12.5,12.5,0,0,1,0,32.92V12.49A12.5,12.5,0,0,1,12.49,0H32.92A12.5,12.5,0,0,1,45.4,12.49V32.92A12.5,12.5,0,0,1,32.92,45.4Z"></path><path d="M84.37,45.4H63.94A12.5,12.5,0,0,1,51.46,32.92V12.49A12.5,12.5,0,0,1,63.94,0H84.37A12.5,12.5,0,0,1,96.86,12.49V32.92A12.5,12.5,0,0,1,84.37,45.4Z"></path><path d="M74.16,96.86a22.7,22.7,0,1,1,22.7-22.7A22.73,22.73,0,0,1,74.16,96.86Z"></path><path d="M32.92,96.86H12.49A12.5,12.5,0,0,1,0,84.37V63.94A12.5,12.5,0,0,1,12.49,51.46H32.92A12.5,12.5,0,0,1,45.4,63.94V84.37A12.5,12.5,0,0,1,32.92,96.86Z"></path></g></g></svg>
             </button>
             <button id="download-btn" class="icon-button" aria-label="Descargar datos" title="Descargar datos actuales">
-                <svg style="fill: white;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                <svg style="fill: white;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            </button>
         </div>
         <div class="header-group">
             <div class="location-display">
@@ -94,20 +94,23 @@
             </footer>
         </article>
            
-        </article>
         
         <!-- NUEVA SECCIÓN PARA LA SEGUNDA GRÁFICA -->
         <section class="card new-chart-card">
             <h3>Resumen</h3>
             <form>
                 <label>Latitud:</label>
-                <input type="number" step="any" name="latitud"><br>
+                <input type="number" step="any" name="latitud">
                 <label>Longitud:</label>
-                <input type="number" step="any" name="longitud"><br>
+                <input type="number" step="any" name="longitud">
                 <label>Fecha:</label>
-                <input type="date" name="fecha"><br>
+                <input type="date" name="fecha">
                 <button type="submit">Guardar</button>
             </form>
+            <div class="chart-wrap" style="margin-top:12px;">
+                <canvas id="newSummaryChart"></canvas>
+            </div>
+            <div id="ai-prompt" class="ai-output" style="margin-top:12px;">Predicción pendiente…</div>
         </section>
         
         <section class="card map-overview-card">
@@ -117,9 +120,7 @@
             
         <section class="card day-summary-card">
             <h3>Resumen Próximas Horas</h3>
-            <div class="summary-graph">
-                <canvas id="summaryChart"></canvas>
-            </div>
+            <div class="summary-graph"><canvas id="summaryChart"></canvas></div>
         </section>
     </main>
 

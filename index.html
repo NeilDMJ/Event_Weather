@@ -98,19 +98,30 @@
         <!-- NUEVA SECCIÓN PARA LA SEGUNDA GRÁFICA -->
         <section class="card new-chart-card">
             <h3>Resumen</h3>
-            <form>
-                <label>Latitud:</label>
-                <input type="number" step="any" name="latitud">
-                <label>Longitud:</label>
-                <input type="number" step="any" name="longitud">
-                <label>Fecha:</label>
-                <input type="date" name="fecha">
-                <button type="submit">Guardar</button>
-            </form>
-            <div class="chart-wrap" style="margin-top:12px;">
-                <canvas id="newSummaryChart"></canvas>
+
+            <!-- Overlay de carga (contenido dentro del card) -->
+            <div class="loading-overlay" aria-hidden="true">
+                <div class="spinner" role="status" aria-label="Procesando"></div>
             </div>
-            <div id="ai-prompt" class="ai-output" style="margin-top:12px;">Predicción pendiente…</div>
+
+            <form id="resumenForm" novalidate>
+                <label for="lat">Latitud:</label>
+                <input id="lat" type="number" step="any" name="latitud" required>
+
+                <label for="lng">Longitud:</label>
+                <input id="lng" type="number" step="any" name="longitud" required>
+
+                <label for="fecha">Fecha:</label>
+                <input id="fecha" type="date" name="fecha" required>
+
+                <button type="submit" class="btn-save">
+                    <span class="btn-label">Guardar</span>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                    <span class="sr-only" aria-live="polite"></span>
+                </button>
+
+                <div class="form-message" aria-live="polite"></div>
+            </form>
         </section>
         
         <section class="card map-overview-card">

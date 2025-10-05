@@ -352,4 +352,73 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar el mapa con el nuevo tema
         updateMapTheme();
     });
+
+    // --- MANEJO DEL FORM .new-chart-card CON ESTADO DE CARGA ---
+    const card = document.querySelector('.new-chart-card');
+    const resumenForm = card ? card.querySelector('#resumenForm') : null;
+    if (card && resumenForm) {
+        const submitBtn = resumenForm.querySelector('button[type="submit"]');
+        const btnLabel = submitBtn.querySelector('.btn-label');
+        const liveRegion = submitBtn.querySelector('.sr-only');
+        const messageEl = resumenForm.querySelector('.form-message');
+        let loading = false;
+
+        function setControlsDisabled(state) {
+            for (const el of resumenForm.elements) {
+                if ('disabled' in el) el.disabled = state;
+            }
+            // Asegurar botón deshabilitado
+            submitBtn.disabled = state;
+        }
+
+        function setLoading(state) {
+            loading = state;
+            card.classList.toggle('is-loading', state);
+            resumenForm.setAttribute('aria-busy', state ? 'true' : 'false');
+            setControlsDisabled(state);
+            btnLabel.textContent = state ? 'Guardando…' : 'Guardar';
+            if (liveRegion) liveRegion.textContent = state ? 'Guardando, por favor espera' : '';
+        }
+
+        async function simulateSave() {
+            // Sustituir por lógica real de guardado (fetch)
+            await new Promise(r => setTimeout(r, 1200));
+            return { ok: true };
+        }
+
+        resumenForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (loading) return; // evitar múltiples envíos
+            if (messageEl) messageEl.textContent = '';
+
+            // Validación nativa opcional
+            if (!resumenForm.checkValidity()) {
+                resumenForm.reportValidity();
+                return;
+            }
+
+            setLoading(true);
+            try {
+                // Ejemplo real:
+                // const resp = await fetch('/api/resumen', { method: 'POST', body: new FormData(resumenForm) });
+                // if (!resp.ok) throw new Error('Error al guardar');
+                const resp = await simulateSave();
+                if (!resp.ok) throw new Error('Error al guardar');
+
+                if (messageEl) {
+                    messageEl.style.color = '#7ee787';
+                    messageEl.textContent = 'Guardado correctamente.';
+                }
+                // resumenForm.reset(); // opcional
+            } catch (err) {
+                console.error(err);
+                if (messageEl) {
+                    messageEl.style.color = '#ff8b8b';
+                    messageEl.textContent = 'Ocurrió un error al guardar. Intenta nuevamente.';
+                }
+            } finally {
+                setLoading(false);
+            }
+        });
+    }
 });

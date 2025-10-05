@@ -46,15 +46,13 @@ body {
     display: grid;
     padding: 20px;
     gap: 20px;
-    /* Evitar forzar la altura total de la vista para que las cards no se alarguen */
-    /* height: calc(100vh - 70px); */
-    align-items: start; /* No estirar las cards verticalmente */
+    height: calc(100vh - 70px);
     
     /* CAMBIO: 4 Columnas: Principal, 2 mini-cards, Nueva Gráfica */
     grid-template-columns: 350px 1fr 1fr 2fr;
     
-    /* Hacer que cada fila use su contenido sin estirarse */
-    grid-template-rows: auto auto auto;
+    /* CAMBIO: Se ajusta el grid para que la nueva gráfica y el mapa tengan tamaños iguales */
+    grid-template-rows: auto 1fr;
     
     grid-template-areas:
         "nav      nav     nav     nav"
@@ -79,40 +77,37 @@ body {
 .time-nav button.active, .time-nav button:hover { color: var(--text-primary); border-bottom-color: var(--text-primary); }
 
 /* --- ESTILO BASE PARA TODAS LAS TARJETAS (sin cambios) --- */
-.card { background-color: var(--card-color); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.card { background-color: var(--card-color); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
 .card h3 { font-weight: 500; margin-bottom: 15px; }
 
 /* --- ESTILOS TARJETA PRINCIPAL (sin cambios) --- */
 .current-weather-card .card-header { display: flex; justify-content: space-between; align-items: center; }
 .current-weather-card h2 { font-size: 24px; font-weight: 600; }
 .current-weather-card .time { font-size: 16px; color: var(--text-muted); }
-.current-weather-card .weather-body { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
-.current-weather-card .temperature { font-size: 56px; font-weight: 700; line-height: 1; }
-.current-weather-card .weather-icon { width: 140px; height: 140px; object-fit: contain; }
-.current-weather-card .weather-details { border-top: 1px solid var(--border-color); padding-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; color: var(--text-muted); }
+.current-weather-card .weather-body { display: flex; align-items: center; justify-content: space-around; margin: 20px 0; flex-grow: 1; }
+.current-weather-card .temperature { font-size: 72px; font-weight: 700; }
+.current-weather-card .weather-icon { width: 250px; }
+.current-weather-card .weather-details { border-top: 1px solid var(--border-color); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; color: var(--text-muted); }
 .weather-details > p { display: flex; align-items: center; gap: 10px; }
 
 /* --- ESTILOS DE MINI CARDS (sin cambios) --- */
-.mini-card { min-height: 250px; display: flex; flex-direction: column; text-align: center; align-items: center; justify-content: space-between; padding: 16px 14px; cursor: pointer; transition: all 0.2s ease-in-out; }
+.mini-card { height: 100%; min-height: 150px; display: flex; flex-direction: column; text-align: center; align-items: center; justify-content: space-between; padding: 20px 15px; cursor: pointer; transition: all 0.2s ease-in-out; }
 .mini-card:hover { transform: translateY(-5px); }
 .mini-card.selected { background-color: var(--selected-bg); }
-.mini-card header { width: 100%; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
-.mini-card h2 { font-size: 18px; font-weight: 700; margin: 0; letter-spacing: 0.5px; }
-.mini-card img { width: 90px; height: 90px; object-fit: contain; margin: 8px auto; }
-.mini-card footer { font-size: 28px; font-weight: 800; margin-top: 6px; }
-.mini-card footer h3 { margin: 0; font-size: 36px; font-weight:700; }
-.mini-card footer.details { margin-top: 6px; }
-.mini-card footer.details p { font-size: 13px; margin: 4px 0; color : var(--text-muted); text-align: center; }
+.mini-card header { width: 100%; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+.mini-card h2 { font-size: 24px; font-weight: 600; margin: 0; }
+.mini-card img { width: 150px; height: 150px; object-fit: contain; margin: auto; align-items: center;}
+.mini-card footer { font-size: 34px; font-weight: 800; }
+.mini-card footer h3 { margin-bottom: 150px; font-size: 50px; font-weight:700 ; }
+.mini-card footer.details p { font-size: 15px; font-weight: normal; margin-bottom: 10px; color : var(--text-muted); text-align: center;}
 
 
 /* ---ESTILOS DEL RESUMEN DE DÍA (sin cambios) --- */
 .new-chart-card{
-    background: var(--card-color);
+    background: var(--bg-secondary);
     border-radius: 16px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    padding: 20px;
-    margin: 0;
-    max-width: 100%;
+    width: 800px;
 }
 .new-chart-card h3{
     font-size: 24px;
@@ -125,30 +120,57 @@ display: flex;
 flex-direction: column;
 gap: 18px;
 }
-
-.new-chart-card label { font-size: 0.95rem; color: var(--text-primary); opacity: 0.85; margin-bottom: 6px; }
-
-.new-chart-card input[type="number"],
-.new-chart-card input[type="date"] { padding: 8px 12px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
-
-.new-chart-card input[type="number"]:focus,
-.new-chart-card input[type="date"]:focus { border: 1.5px solid #8cb2ff; outline: none; }
-
-.new-chart-card button[type="submit"] { background: #2b6cb0; color: #fff; border: none; border-radius: 8px; padding: 10px 0; font-size: 1.05rem; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background 0.2s; }
-
-.new-chart-card button[type="submit"]:hover {
-background: #1a4366;
-}
-
-/* Área de salida AI y gráfica dentro de la tarjeta de resumen */
-.ai-output { white-space: pre-line; font-size: 0.9rem; color: var(--text-muted); background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; }
-.new-chart-card .chart-wrap { height: 220px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); padding: 8px; }
+  
+  .new-chart-card label {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  
+  .new-chart-card input[type="number"],
+  .new-chart-card input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border 0.2s;
+    background-color: var(--bg-secondary);
+    color: var(--text-muted);
+  }
+  
+  .new-chart-card input[type="number"]:focus,
+  .new-chart-card input[type="date"]:focus {
+    border: 1.5px solid #8cb2ff;
+    outline: none;
+  }
+  
+  .new-chart-card button[type="submit"] {
+    background: #2b6cb0;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s;
+  }
+  
+  .new-chart-card button[type="submit"]:hover {
+    background: #1a4366;
+  }
 /* --- ESTILOS DE MAPA Y RESUMEN (CORREGIDO) --- */
 .map-overview-card, .day-summary-card, .new-chart-card {
     display: flex;
     flex-direction: column;
 }
-/* Usamos únicamente grid-template-areas para posicionar (evitamos conflictos) */
+.map-overview-card {
+    grid-column: 1 / 4; /* El mapa ocupa las primeras dos columnas de su fila */
+}
+.day-summary-card {
+    grid-column: 4 / 5; /* La gráfica ocupa las últimas dos columnas */
+}
 .map-overview-card #mi_mapa { flex-grow: 1; background-color: var(--bg-secondary); border-radius: 15px; min-height: 250px; }
 .day-summary-card .summary-graph, .new-chart-card .summary-graph { flex-grow: 1; display: flex; align-items: flex-end; min-height: 150px; background-color: var(--bg-secondary); border-radius: 15px; }
 

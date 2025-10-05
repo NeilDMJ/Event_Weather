@@ -76,18 +76,38 @@
             <header><h2>DOM</h2></header>
             <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/day.svg" alt="Sunny">
             <footer><h3>19°</h3></footer>
+            <footer class = "details">
+                <p>Pressure : 1015 mb</p>
+                <p>Viento: 9.3 km/h</p>
+                <p>Humedad: 70 %</p>
+            </footer>
         </article>
         
         <article class="card mini-card">
             <header><h2>LUN</h2></header>
             <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-2.svg" alt="Cloudy">
             <footer><h3>17°</h3></footer>
+            <footer class = "details">
+                <p>Pressure : 1015 mb</p>
+                <p>Viento: 9.3 km/h</p>
+                <p>Humedad: 70 %</p>
+            </footer>
+        </article>
+           
         </article>
         
         <!-- NUEVA SECCIÓN PARA LA SEGUNDA GRÁFICA -->
         <section class="card new-chart-card">
             <h3>Resumen</h3>
-            <div></div>
+            <form>
+                <label>Latitud:</label>
+                <input type="number" step="any" name="latitud"><br>
+                <label>Longitud:</label>
+                <input type="number" step="any" name="longitud"><br>
+                <label>Fecha:</label>
+                <input type="date" name="fecha"><br>
+                <button type="submit">Guardar</button>
+            </form>
         </section>
         
         <section class="card map-overview-card">

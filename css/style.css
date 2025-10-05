@@ -96,10 +96,70 @@ body {
 .mini-card.selected { background-color: var(--selected-bg); }
 .mini-card header { width: 100%; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
 .mini-card h2 { font-size: 24px; font-weight: 600; margin: 0; }
-.mini-card img { width: 70px; height: 70px; object-fit: contain; margin: 10px 0; }
+.mini-card img { width: 60px; height: 60px; object-fit: contain; margin: auto; }
 .mini-card footer { font-size: 34px; font-weight: 800; }
-.mini-card footer h3 { margin: 0; font-size: inherit; }
+.mini-card footer h3 { margin-bottom: 10px; font-size: 1.5rem; }
+.mini-card footer.details p { font-size: 15px; font-weight: normal; margin-bottom: 10px; color : var(--text-muted); text-align: center;}
 
+
+/* ---ESTILOS DEL RESUMEN DE DÍA (sin cambios) --- */
+.new-chart-card{
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    padding: 32px 24px;
+    margin: 24px 0;
+    max-width: 500px;
+}
+.new-chart-card h3{
+    font-size: 24px;
+    text-align: center;
+    font-weight: 600;
+}
+
+  .new-chart-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  
+  .new-chart-card label {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  
+  .new-chart-card input[type="number"],
+  .new-chart-card input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border 0.2s;
+  }
+  
+  .new-chart-card input[type="number"]:focus,
+  .new-chart-card input[type="date"]:focus {
+    border: 1.5px solid #8cb2ff;
+    outline: none;
+  }
+  
+  .new-chart-card button[type="submit"] {
+    background: #2b6cb0;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s;
+  }
+  
+  .new-chart-card button[type="submit"]:hover {
+    background: #1a4366;
+  }
 /* --- ESTILOS DE MAPA Y RESUMEN (CORREGIDO) --- */
 .map-overview-card, .day-summary-card, .new-chart-card {
     display: flex;

@@ -12,7 +12,7 @@
     --text-muted: #818085;
     --card-color: #242424;
     --border-color: #333333;
-    --selected-bg: #007BFF; /* Color para la tarjeta seleccionada */
+    --selected-bg: #007BFF;
 }
 
 body {
@@ -22,8 +22,7 @@ body {
     min-height: 100vh;
 }
 
-/* --- ESTILOS DEL HEADER --- */ 
-/* ... (El CSS del header no cambia) ... */
+/* --- ESTILOS DEL HEADER (sin cambios) --- */
 .main-header { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 70px; padding: 0 20px; border-bottom: 1px solid var(--border-color); }
 .header-group { display: flex; align-items: center; gap: 15px; }
 .icon-button { display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; background-color: var(--bg-secondary); border-radius: 50%; border: none; cursor: pointer; padding: 10px; }
@@ -41,53 +40,47 @@ body {
 .suggestion-item:hover { background-color: var(--bg-secondary); }
 #date { font-family: 'Instrument Sans', Arial, sans-serif; font-size: 16px; background-color: var(--bg-secondary); color: var(--text-primary); height: 45px; padding: 0 15px; border-radius: 20px; border: none; outline: none; text-align: center; color-scheme: dark; }
 
-/* --- LAYOUT DEL DASHBOARD (ACTUALIZADO PARA 7 COLUMNAS) --- */
+
+/* --- LAYOUT DEL DASHBOARD (NUEVA ESTRUCTURA) --- */
 .dashboard-grid {
     display: grid;
     padding: 20px;
     gap: 20px;
     height: calc(100vh - 70px);
     
-    /* CAMBIO: Ahora son 7 columnas en total */
-    grid-template-columns: 350px repeat(6, 1fr);
+    /* CAMBIO: 4 Columnas: Principal, 2 mini-cards, Nueva Gráfica */
+    grid-template-columns: 350px 1fr 1fr 2fr;
     
-    grid-template-rows: auto 1fr 1fr;
+    /* CAMBIO: Se ajusta el grid para que la nueva gráfica y el mapa tengan tamaños iguales */
+    grid-template-rows: auto 1fr;
     
-    /* CAMBIO: Se añade mini6 al grid */
     grid-template-areas:
-        "nav      nav     nav     nav     nav     nav     nav"
-        "today    mini1   mini2   mini3   mini4   mini5   mini6"
-        "map      map     map     summary summary summary summary";
+        "nav      nav     nav     nav"
+        "today    mini1   mini2   new-chart"
+        "map      map     summary summary";
 }
 
 /* --- ASIGNACIÓN DE ÁREAS --- */
 .time-nav             { grid-area: nav; }
 .current-weather-card { grid-area: today; }
-.map-overview-card    { grid-area: map; }
+.new-chart-card       { grid-area: new-chart; }
+.map-overview-card    { grid-area: map; height: 500px;}
 .day-summary-card     { grid-area: summary; }
 
-/* CAMBIO: Se elimina el contenedor y se asignan las tarjetas individualmente */
-.forecast-container { display: contents; } /* truco para que el contenedor no afecte el grid */
+/* Asignación a las 2 mini-cards */
 .mini-card:nth-of-type(1) { grid-area: mini1; }
 .mini-card:nth-of-type(2) { grid-area: mini2; }
-.mini-card:nth-of-type(3) { grid-area: mini3; }
-.mini-card:nth-of-type(4) { grid-area: mini4; }
-.mini-card:nth-of-type(5) { grid-area: mini5; }
-.mini-card:nth-of-type(6) { grid-area: mini6; } /* CAMBIO: Se asigna la sexta tarjeta */
 
-
-/* --- ESTILOS DE LA NAVEGACIÓN DE TIEMPO --- */
-/* ... (sin cambios) ... */
+/* --- ESTILOS DE LA NAVEGACIÓN DE TIEMPO (sin cambios) --- */
 .time-nav { display: flex; gap: 20px; margin-bottom: 10px; }
 .time-nav button { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 5px 0; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s ease-in-out; }
 .time-nav button.active, .time-nav button:hover { color: var(--text-primary); border-bottom-color: var(--text-primary); }
 
-/* --- ESTILO BASE PARA TODAS LAS TARJETAS --- */
+/* --- ESTILO BASE PARA TODAS LAS TARJETAS (sin cambios) --- */
 .card { background-color: var(--card-color); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
 .card h3 { font-weight: 500; margin-bottom: 15px; }
 
-/* --- ESTILOS TARJETA PRINCIPAL --- */
-/* ... (sin cambios) ... */
+/* --- ESTILOS TARJETA PRINCIPAL (sin cambios) --- */
 .current-weather-card .card-header { display: flex; justify-content: space-between; align-items: center; }
 .current-weather-card h2 { font-size: 24px; font-weight: 600; }
 .current-weather-card .time { font-size: 16px; color: var(--text-muted); }
@@ -97,8 +90,7 @@ body {
 .current-weather-card .weather-details { border-top: 1px solid var(--border-color); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; color: var(--text-muted); }
 .weather-details > p { display: flex; align-items: center; gap: 10px; }
 
-/* --- ESTILOS DE MINI CARDS --- */
-/* ... (sin cambios) ... */
+/* --- ESTILOS DE MINI CARDS (sin cambios) --- */
 .mini-card { height: 100%; min-height: 150px; display: flex; flex-direction: column; text-align: center; align-items: center; justify-content: space-between; padding: 20px 15px; cursor: pointer; transition: all 0.2s ease-in-out; }
 .mini-card:hover { transform: translateY(-5px); }
 .mini-card.selected { background-color: var(--selected-bg); }
@@ -108,10 +100,20 @@ body {
 .mini-card footer { font-size: 34px; font-weight: 800; }
 .mini-card footer h3 { margin: 0; font-size: inherit; }
 
-/* --- ESTILOS DE MAPA Y RESUMEN --- */
-/* ... (sin cambios) ... */
-.map-overview-card #mi_mapa { flex-grow: 1; background-color: var(--bg-secondary); border-radius: 15px; display: flex; justify-content: center; align-items: center; color: var(--text-muted); min-height: 250px; }
-.day-summary-card .summary-graph { flex-grow: 1; display: flex; align-items: flex-end; min-height: 250px; background-color: var(--bg-secondary); border-radius: 15px; }
+/* --- ESTILOS DE MAPA Y RESUMEN (CORREGIDO) --- */
+.map-overview-card, .day-summary-card, .new-chart-card {
+    display: flex;
+    flex-direction: column;
+}
+.map-overview-card {
+    grid-column: 1 / 4; /* El mapa ocupa las primeras dos columnas de su fila */
+}
+.day-summary-card {
+    grid-column: 4 / 5; /* La gráfica ocupa las últimas dos columnas */
+}
+.map-overview-card #mi_mapa { flex-grow: 1; background-color: var(--bg-secondary); border-radius: 15px; min-height: 250px; }
+.day-summary-card .summary-graph, .new-chart-card .summary-graph { flex-grow: 1; display: flex; align-items: flex-end; min-height: 150px; background-color: var(--bg-secondary); border-radius: 15px; }
+
 
 /* Media query (sin cambios) */
 @media (max-width: 1200px) { /* ... */ }

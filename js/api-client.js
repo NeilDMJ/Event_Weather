@@ -22,10 +22,7 @@ class WeatherAPIClient {
         
         // URLs conocidas del backend (actualizar según deployment real)
         const possibleBackends = [
-            'https://event-weather-backend.vercel.app',
-            'https://event-weather-api.vercel.app',
-            'https://event-weather-backend.railway.app',
-            'https://event-weather-api.railway.app'
+            'https://servios.utm.mx/apiclima'
         ];
         
         // Por ahora retornar la primera opción (actualizar después de verificar cuál funciona)

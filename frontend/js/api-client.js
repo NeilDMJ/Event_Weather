@@ -14,7 +14,7 @@ class WeatherAPIClient {
     async request(endpoint, options = {}) {
         try {
             const url = `${this.baseURL}${endpoint}`;
-            console.log(`🌐 Petición a: ${url}`);
+            console.log(` Petición a: ${url}`);
             
             const response = await fetch(url, {
                 headers: {
@@ -29,11 +29,11 @@ class WeatherAPIClient {
             }
 
             const data = await response.json();
-            console.log('✅ Respuesta recibida:', data);
+            console.log(' Respuesta recibida:', data);
             return data;
             
         } catch (error) {
-            console.error('❌ Error en petición:', error);
+            console.error(' Error en petición:', error);
             throw error;
         }
     }

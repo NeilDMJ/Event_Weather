@@ -5,12 +5,12 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from app.services.nasapower import get_complete_climate_projection
 
-async def collect_data(location):
+async def collect_data(location,year):
     all_data = []
 
     lat, lon = location
     try:
-        data = await get_complete_climate_projection(lat, lon, 2010, 2025)
+        data = await get_complete_climate_projection(lat, lon, year-5, year)
         if "parameters" in data and data["parameters"]:
             # Crear lista vacía para los registros
             records_list = []

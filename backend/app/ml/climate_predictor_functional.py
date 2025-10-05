@@ -132,7 +132,7 @@ def buscar_modelo_ideal(coordenadas, distancia_maxima=100):
             'coordenadas_objetivo': coordenadas
         }
 
-async def entrenar_modelo_nuevo(coordenadas):
+async def entrenar_modelo_nuevo(coordenadas,year):
     """Entrenar un nuevo modelo usando las funciones de model_trainer y data_collector"""
     from .data_collector import collect_data
     from .model_trainer import train_climate_models, save_models, FEATURE_COLUMNS, TARGET_PARAMETERS
@@ -141,7 +141,7 @@ async def entrenar_modelo_nuevo(coordenadas):
     
     try:
         # Recolectar datos usando data_collector
-        df = await collect_data(coordenadas)
+        df = await collect_data(coordenadas, year)
         
         if df.empty:
             raise Exception("No se pudieron obtener datos históricos")
@@ -203,14 +203,14 @@ def prepare_features_for_training(df, feature_columns, target_parameters):
     
     return df_clean
 
-async def obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100):
+async def obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100, year=datetime.now().year):
     """Función principal: buscar modelo ideal o entrenar uno nuevo"""
     resultado = buscar_modelo_ideal(coordenadas, distancia_maxima)
     
     if resultado['encontrado']:
         return resultado['modelos']
     elif resultado['necesita_entrenar']:
-        models = await entrenar_modelo_nuevo(coordenadas)
+        models = await entrenar_modelo_nuevo(coordenadas, year)
         if models:
             return models
         else:

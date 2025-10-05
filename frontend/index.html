@@ -52,7 +52,6 @@
     <main class="dashboard-grid">
         <nav class="time-nav">
             <button type="button" class="active">Today</button>
-            <button type="button">Tomorrow</button>
         </nav>
         
         <article class="card current-weather-card">
@@ -71,46 +70,33 @@
                 <p>Humedad: 83%</p>
             </footer>
         </article>
-            
-        <div class="forecast-container">
-            <article class="card mini-card">
-                <header><h2>SÁB</h2></header>
-                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-1.svg" alt="Cloudy">
-                <footer><h3>18°</h3></footer>
-            </article>
-            <article class="card mini-card">
-                <header><h2>DOM</h2></header>
-                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/day.svg" alt="Sunny">
-                <footer><h3>19°</h3></footer>
-            </article>
-            <article class="card mini-card">
-                <header><h2>LUN</h2></header>
-                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-2.svg" alt="Cloudy">
-                <footer><h3>17°</h3></footer>
-            </article>
-            <article class="card mini-card">
-                <header><h2>MAR</h2></header>
-                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-3.svg" alt="Rainy">
-                <footer><h3>15°</h3></footer>
-            </article>
-            <article class="card mini-card">
-                <header><h2>MIÉ</h2></header>
-                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/rainy-1.svg" alt="Rainy">
-                <footer><h3>14°</h3></footer>
-            </article>
-            <!-- SEXTA MINI-CARD AÑADIDA -->
-            <article class="card mini-card">
-                <header><h2>JUE</h2></header>
-                <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/thunder.svg" alt="Thunder">
-                <footer><h3>13°</h3></footer>
-            </article>
-        </div>
+        
+        <!-- SOLO DOS MINI CARDS -->
+        <article class="card mini-card">
+            <header><h2>DOM</h2></header>
+            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/day.svg" alt="Sunny">
+            <footer><h3>19°</h3></footer>
+        </article>
+        
+        <article class="card mini-card">
+            <header><h2>LUN</h2></header>
+            <img src="https://www.amcharts.com/wp-content/themes/amcharts4/css/img/icons/weather/animated/cloudy-day-2.svg" alt="Cloudy">
+            <footer><h3>17°</h3></footer>
+        </article>
+        
+        <!-- NUEVA SECCIÓN PARA LA SEGUNDA GRÁFICA -->
+        <section class="card new-chart-card">
+            <h3>Previsión Semanal</h3>
+            <div class="summary-graph">
+                <canvas id="newSummaryChart"></canvas>
+            </div>
+        </section>
         
         <section class="card map-overview-card">
             <h3>Vista del Mapa</h3>
             <div id="mi_mapa"></div>
         </section>
-
+            
         <section class="card day-summary-card">
             <h3>Resumen Próximas Horas</h3>
             <div class="summary-graph">

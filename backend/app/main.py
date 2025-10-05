@@ -26,7 +26,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://savidevs-weather-app.vercel.app/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,18 +35,6 @@ app.add_middleware(
 # Inicializar predictor mejorado
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://eventweather_user:eventweather_pass@localhost:5432/eventweather_db")
 enhanced_predictor = EnhancedClimatePredictor(DATABASE_URL)
-
-@app.on_event("startup")
-async def startup_event():
-    """Inicializar conexiones al startup"""
-    await enhanced_predictor.initialize()
-    print("🚀 Enhanced Climate Predictor inicializado con base de datos")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Limpiar recursos al shutdown"""
-    await enhanced_predictor.cleanup()
-    print("🛑 Enhanced Climate Predictor desconectado")
 
 @app.get("/")
 async def root():

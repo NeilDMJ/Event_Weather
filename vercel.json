@@ -2,18 +2,18 @@
   "version": 2,
   "name": "event-weather-frontend",
   "public": true,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/",
-      "dest": "/index.html"
+      "source": "/",
+      "destination": "/index.html"
     },
     {
-      "src": "/(css|js|models)/(.*)",
-      "dest": "/$1/$2"
+      "source": "/(css|js|models)/(.*)",
+      "destination": "/$1/$2"
     },
     {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/(.*)",
+      "destination": "/$1"
     }
   ],
   "headers": [

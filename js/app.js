@@ -151,27 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- FUNCIÓN PRINCIPAL PARA OBTENER CLIMA ---
     async function getWeatherForCity(cityOrCoords) {
-        const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityOrCoords}&days=14&aqi=no&alerts=no&lang=es`;
-        Swal.fire({
-        title: 'Generando Predicción ML',
-        html: 'Analizando modelos para tu ubicación...<br><b></b>',
-        timer: 10000,  // 30 segundos máximo
-        timerProgressBar: true,
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            // Opcional: mostrar tiempo transcurrido
-            const timer = Swal.getPopup().querySelector("b");
-            let elapsed = 0;
-            timerInterval = setInterval(() => {
-                elapsed += 100;
-                timer.textContent = `${(elapsed/1000).toFixed(1)}s`;
-            }, 100);
-        },
-        willClose: () => {
-            clearInterval(timerInterval);
-        }
-    });
+        const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityOrCoords}&days=14&aqi=no&alerts=no&lang=es`
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('Ubicación no encontrada');

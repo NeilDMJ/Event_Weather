@@ -203,15 +203,32 @@ def prepare_features_for_training(df, feature_columns, target_parameters):
     
     return df_clean
 
+# CACHÉ GLOBAL DE MODELOS PARA OPTIMIZAR VELOCIDAD
+_models_cache = {}
+_cache_timestamps = {}
+
 async def obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100):
-    """Función principal: buscar modelo ideal o entrenar uno nuevo"""
+    """Función principal OPTIMIZADA: buscar modelo ideal o entrenar uno nuevo con CACHÉ"""
+    # Crear clave de caché basada en coordenadas redondeadas
+    cache_key = f"{round(coordenadas[0], 2)}_{round(coordenadas[1], 2)}"
+    
+    # Verificar si ya está en caché
+    if cache_key in _models_cache:
+        return _models_cache[cache_key]
+    
     resultado = buscar_modelo_ideal(coordenadas, distancia_maxima)
     
     if resultado['encontrado']:
+        # Guardar en caché
+        _models_cache[cache_key] = resultado['modelos']
+        _cache_timestamps[cache_key] = datetime.now()
         return resultado['modelos']
     elif resultado['necesita_entrenar']:
         models = await entrenar_modelo_nuevo(coordenadas)
         if models:
+            # Guardar en caché
+            _models_cache[cache_key] = models
+            _cache_timestamps[cache_key] = datetime.now()
             return models
         else:
             return {}

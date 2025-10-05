@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
+from dotenv import load_dotenv
 from app.services.nasapower import (
     get_climate_projection,
     get_complete_climate_projection,
@@ -10,8 +11,12 @@ from app.services.nasapower import (
     get_solar_projection
 )
 from app.ml.climate_predictor_functional import ClimatePredictor, obtener_o_entrenar_modelo
+from app.services.gemini_service import get_gemini_service
 import pandas as pd
 import numpy as np
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 app = FastAPI(
     title="Will It Rain On My Parade - NASA Space Apps",
@@ -35,18 +40,23 @@ async def root():
     """
     return {
         "message": "Will It Rain On My Parade - NASA Space Apps API",
-        "description": "API que obtiene proyecciones climáticas desde NASA POWER y predicciones ML",
+        "description": "API que obtiene proyecciones climáticas desde NASA POWER, predicciones ML y análisis con Gemini AI",
         "version": "2.0",
         "endpoints": {
             "climate": "/climate?lat={latitude}&lon={longitude}&start={year}&end={year}",
             "climate_complete": "/climate/complete?lat={latitude}&lon={longitude}&start={year}&end={year}",
             "predict_future": "/predict?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}",
+            "ai_description": "/predict/ai-description?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}",
+            "event_planning": "/predict/event-planning?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}&event_type={type}",
+            "summary": "/predict/summary?lat={latitude}&lon={longitude}&date={YYYY-MM-DD}",
             "docs": "/docs",
             "openapi": "/openapi.json"
         },
         "examples": {
             "historical_data": "/climate?lat=17.866667&lon=-97.783333&start=2020&end=2025",
-            "future_prediction": "/predict?lat=17.8270&lon=-97.8043&date=2025-12-25"
+            "future_prediction": "/predict?lat=17.8270&lon=-97.8043&date=2025-12-25",
+            "ai_description": "/predict/ai-description?lat=17.8270&lon=-97.8043&date=2025-12-25",
+            "event_planning": "/predict/event-planning?lat=17.8270&lon=-97.8043&date=2025-12-25&event_type=wedding"
         }
     }
 
@@ -262,4 +272,141 @@ async def predict_future_climate(
         raise HTTPException(
             status_code=500,
             detail=f"Error interno del servidor durante la predicción: {str(e)}"
+        )
+
+
+@app.get("/predict/ai-description")
+async def predict_with_ai_description(
+    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
+    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
+    date: str = Query(..., description="Fecha futura en formato YYYY-MM-DD", example="2025-12-25"),
+):
+    """
+    OPTIMIZADO: Obtiene la predicción climática y genera una descripción detallada usando Gemini AI.
+    
+    Este endpoint combina:
+    1. Predicción climática numérica del modelo ML
+    2. Análisis y descripción generada por Gemini AI
+    
+    Retorna un análisis completo del clima esperado con recomendaciones prácticas.
+    """
+    try:
+        # OPTIMIZACIÓN: Obtener predicción y servicio Gemini en paralelo
+        import asyncio
+        
+        # Ejecutar predicción y obtener servicio simultáneamente
+        prediction_task = predict_future_climate(lat, lon, date)
+        gemini_service = get_gemini_service()
+        
+        # Esperar solo por la predicción
+        prediction_response = await prediction_task
+        
+        # Generar descripción con Gemini (ya optimizado internamente)
+        ai_response = await gemini_service.generate_climate_description(prediction_response)
+        
+        return ai_response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando descripción con AI: {str(e)}"
+        )
+
+
+@app.get("/predict/event-planning")
+async def predict_for_event_planning(
+    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
+    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
+    date: str = Query(..., description="Fecha del evento en formato YYYY-MM-DD", example="2025-12-25"),
+    event_type: str = Query(
+        "outdoor",
+        description="Tipo de evento (outdoor, sports, wedding, concert, festival, etc.)",
+        example="wedding"
+    ),
+):
+    """
+    Análisis climático especializado para planificación de eventos usando Gemini AI.
+    
+    Este endpoint proporciona:
+    1. Predicción climática numérica
+    2. Análisis de viabilidad del evento
+    3. Riesgos climáticos específicos
+    4. Recomendaciones prácticas para el tipo de evento
+    5. Plan de contingencia
+    
+    Tipos de eventos soportados:
+    - outdoor: Eventos al aire libre generales
+    - sports: Eventos deportivos
+    - wedding: Bodas
+    - concert: Conciertos
+    - festival: Festivales
+    - beach: Eventos en playa
+    - hiking: Caminatas/senderismo
+    """
+    try:
+        # Obtener predicción climática
+        prediction_response = await predict_future_climate(lat, lon, date)
+        
+        # Obtener el servicio de Gemini
+        gemini_service = get_gemini_service()
+        
+        # Generar análisis para planificación de eventos
+        ai_response = await gemini_service.generate_event_planning_advice(
+            prediction_response,
+            event_type
+        )
+        
+        return ai_response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando análisis de evento: {str(e)}"
+        )
+
+
+@app.get("/predict/summary")
+async def predict_with_summary(
+    lat: float = Query(..., description="Latitud en grados decimales", example=17.8270),
+    lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
+    date: str = Query(..., description="Fecha futura en formato YYYY-MM-DD", example="2025-12-25"),
+):
+    """
+    Obtiene la predicción climática con un resumen corto y conciso generado por Gemini AI.
+    
+    Ideal para:
+    - Notificaciones push
+    - Resúmenes rápidos
+    - Interfaces móviles
+    - Mensajes de texto
+    
+    Retorna un resumen de 2-3 oraciones del clima esperado.
+    """
+    try:
+        # Obtener predicción climática
+        prediction_response = await predict_future_climate(lat, lon, date)
+        
+        # Obtener el servicio de Gemini
+        gemini_service = get_gemini_service()
+        
+        # Generar resumen simple
+        summary_response = await gemini_service.generate_simple_summary(prediction_response)
+        
+        # Combinar predicción con resumen
+        return {
+            **prediction_response,
+            "ai_summary": summary_response.get("summary", ""),
+            "ai_generated_at": summary_response.get("generated_at", "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando resumen: {str(e)}"
         )

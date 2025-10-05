@@ -66,3 +66,10 @@ async def collect_data(location):
     else:
         return pd.DataFrame()  # Retorna un DataFrame vacío si no hay datos
     
+
+#guardar los datos en un archivo csv backend/app/ml/data/raw/climate_dataa + "location".csv
+def guardar_datos_csv(df):
+    filename = f"backend/app/ml/data/raw/climate_data_{df.latitude.iloc[0]}_{df.longitude.iloc[0]}.csv"
+    df.to_csv(filename, index=False)
+
+    print(f"Datos guardados en {filename}")

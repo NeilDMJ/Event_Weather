@@ -1,0 +1,41 @@
+{
+  "success": true,
+  "location": {
+    "latitude": 17.828,
+    "longitude": -97.805
+  },
+  "prediction_date": "2025-11-15",
+  "predictions": {
+    "precipitation_mm_per_day_20251004": 0.696,
+    "temperature_c_20251004": 14.748,
+    "temperature_max_c_20251004": 25.127,
+    "temperature_min_c_20251004": 3.6,
+    "humidity_percent_20251004": 81.011,
+    "wind_speed_ms_20251004": 2.663,
+    "pressure_kpa_20251004": 80.487,
+    "cloud_cover_percent_20251004": 28.674,
+    "precipitation_mm_per_day": 2.0,
+    "temperature_c": 23.0,
+    "temperature_max_c": 29.0,
+    "temperature_min_c": 17.0,
+    "humidity_percent": 65.0,
+    "wind_speed_ms": 2.0,
+    "pressure_kpa": 80.0,
+    "cloud_cover_percent": 50.0
+  },
+  "model_info": {
+    "models_used": [
+      "Precipitation_mm_per_day_20251004",
+      "Temperature_C_20251004",
+      "Temperature_Max_C_20251004",
+      "Temperature_Min_C_20251004",
+      "Humidity_Percent_20251004",
+      "Wind_Speed_ms_20251004",
+      "Pressure_kPa_20251004",
+      "Cloud_Cover_Percent_20251004"
+    ],
+    "total_models": 8,
+    "prediction_method": "gradient_boosting_regressor"
+  },
+  "generated_at": "2025-10-04T20:16:22.809168"
+}

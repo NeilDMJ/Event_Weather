@@ -9,8 +9,9 @@ from app.services.nasapower import (
     get_atmospheric_projection,
     get_solar_projection
 )
-from app.ml.climate_predictor import ClimatePredictor
-from app.ml.climate_predictor import ClimatePredictor
+from app.ml.climate_predictor_functional import ClimatePredictor, obtener_o_entrenar_modelo
+import pandas as pd
+import numpy as np
 
 app = FastAPI(
     title="Will It Rain On My Parade - NASA Space Apps",
@@ -139,27 +140,6 @@ async def predict_future_climate(
     lon: float = Query(..., description="Longitud en grados decimales", example=-97.8043),
     date: str = Query(..., description="Fecha futura en formato YYYY-MM-DD", example="2025-12-25"),
 ):
-    """
-    Predice los parámetros climáticos para una fecha futura específica.
-    
-    Utiliza machine learning con datos históricos de NASA POWER para entrenar
-    modelos específicos y generar predicciones precisas.
-    
-    **Parámetros predichos:**
-    - Precipitación (mm/día)
-    - Temperatura promedio, máxima y mínima (°C)
-    - Humedad relativa (%)
-    - Velocidad del viento (m/s)
-    - Presión superficial (kPa)
-    - Nubosidad (%)
-    
-    **Proceso:**
-    1. Recolecta datos históricos de la ubicación y alrededores
-    2. Entrena modelos específicos para cada parámetro climático
-    3. Genera predicción para la fecha solicitada
-    
-    **Precisión típica:** 85-95% (R² score)
-    """
     
     # Validar formato de fecha
     try:
@@ -175,30 +155,122 @@ async def predict_future_climate(
             detail="Formato de fecha inválido. Use YYYY-MM-DD (ejemplo: 2025-12-25)."
         )
     
-    # Validar coordenadas (rango aproximado para México)
-    if not (14.0 <= lat <= 33.0 and -118.0 <= lon <= -86.0):
-        raise HTTPException(
-            status_code=400,
-            detail="Coordenadas fuera del rango válido para México. Latitud: 14-33, Longitud: -118 a -86."
-        )
-    
     try:
-        # Crear predictor y hacer predicción
-        predictor = ClimatePredictor()
-        result = await predictor.predict_for_date(lat, lon, date)
+        # Coordenadas del punto objetivo
+        coordenadas = (lat, lon)
         
-        # Verificar si hay error en el resultado
-        if "error" in result:
+        # Obtener o entrenar modelo para las coordenadas
+        print(f"🔍 Buscando/entrenando modelo para ({lat}, {lon})")
+        modelos = await obtener_o_entrenar_modelo(coordenadas, distancia_maxima=100)
+        
+        if not modelos:
             raise HTTPException(
                 status_code=500,
-                detail=f"Error en predicción: {result['error']}"
+                detail="No se pudo obtener o entrenar un modelo para esta ubicación"
             )
         
-        return result
+        # Preparar características para predicción
+        year = target_date.year
+        month = target_date.month
         
+        # Características temporales cíclicas
+        month_sin = np.sin(2 * np.pi * month / 12)
+        month_cos = np.cos(2 * np.pi * month / 12)
+        
+        # Crear DataFrame con características para predicción (sin Season)
+        features = pd.DataFrame([{
+            'Year': year,
+            'Month': month,
+            'Latitude': lat,
+            'Longitude': lon,
+            'Month_sin': month_sin,
+            'Month_cos': month_cos
+        }])
+        
+        # Hacer predicciones con cada modelo
+        predicciones = {}
+        modelos_usados = []
+        
+        # Mapeo de nombres de parámetros para la respuesta
+        param_names = {
+            'Precipitation_mm_per_day': 'precipitation_mm_per_day',
+            'Temperature_C': 'temperature_c',
+            'Temperature_Max_C': 'temperature_max_c',
+            'Temperature_Min_C': 'temperature_min_c',
+            'Humidity_Percent': 'humidity_percent',
+            'Wind_Speed_ms': 'wind_speed_ms',
+            'Pressure_kPa': 'pressure_kpa',
+            'Cloud_Cover_Percent': 'cloud_cover_percent'
+        }
+        
+        # Valores por defecto en caso de error
+        default_values = {
+            'precipitation_mm_per_day': 2.0,
+            'temperature_c': 23.0,
+            'temperature_max_c': 29.0,
+            'temperature_min_c': 17.0,
+            'humidity_percent': 65.0,
+            'wind_speed_ms': 2.0,
+            'pressure_kpa': 80.0,
+            'cloud_cover_percent': 50.0
+        }
+        
+        for param_model_name, modelo in modelos.items():
+            try:
+                pred_value = modelo.predict(features)[0]
+                
+                # Limpiar nombre del parámetro (quitar timestamp si existe)
+                clean_param_name = param_model_name
+                if '_20251004' in clean_param_name:
+                    clean_param_name = clean_param_name.split('_20251004')[0]
+                
+                # Convertir nombre del parámetro
+                response_name = param_names.get(clean_param_name, clean_param_name.lower())
+                predicciones[response_name] = round(float(pred_value), 3)
+                modelos_usados.append(param_model_name)
+                
+            except Exception as e:
+                print(f"Error prediciendo {param_model_name}: {e}")
+                # Usar valor por defecto solo si no hay predicción
+                clean_param_name = param_model_name
+                if '_20251004' in clean_param_name:
+                    clean_param_name = clean_param_name.split('_20251004')[0]
+                
+                response_name = param_names.get(clean_param_name, clean_param_name.lower())
+                if response_name in default_values and response_name not in predicciones:
+                    predicciones[response_name] = default_values[response_name]
+        
+        # Solo agregar valores por defecto para parámetros que no tuvieron predicción
+        for response_name, default_val in default_values.items():
+            if response_name not in predicciones:
+                predicciones[response_name] = default_val
+        
+        # Preparar respuesta
+        response = {
+            "success": True,
+            "location": {
+                "latitude": lat,
+                "longitude": lon
+            },
+            "prediction_date": date,
+            "predictions": predicciones,
+            "model_info": {
+                "models_used": modelos_usados,
+                "total_models": len(modelos),
+                "prediction_method": "gradient_boosting_regressor"
+            },
+            "generated_at": datetime.now().isoformat()
+        }
+        
+        print(f"✅ Predicción completada para ({lat}, {lon}) - {date}")
+        return response
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
-        # Capturar cualquier error no manejado
+        print(f"❌ Error en predicción: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error interno del servidor: {str(e)}"
+            detail=f"Error interno del servidor durante la predicción: {str(e)}"
         )

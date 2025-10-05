@@ -1,0 +1,5 @@
+Modelo: Precipitation_mm_per_day
+Algoritmo: GradientBoostingRegressor
+Ubicación entrenamiento: 17.827, -97.8043
+Fecha entrenamiento: 2025-10-04T20:19:04.652673
+Características: ['Year', 'Month', 'Latitude', 'Longitude', 'Month_sin', 'Month_cos']

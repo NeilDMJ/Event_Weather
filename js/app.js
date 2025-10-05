@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let map;
     let marker;
     let currentTileLayer;
-    const API_KEY = '95d485525131456b8e1231409250410';
+    // Removido API_KEY - ya no usamos APIs externas, solo nuestro backend
     let currentForecastData = null;
     let newSummaryChartInstance = null;
 
@@ -205,31 +205,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- FUNCIÓN PRINCIPAL PARA OBTENER CLIMA ---
     async function getWeatherForCity(cityOrCoords) {
-        // Pedimos 14 días para tener un buen rango para el calendario
-        const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityOrCoords}&days=14&aqi=no&alerts=no&lang=es`;
-        
         try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('Ubicación no encontrada');
+            // Convertir nombre de ciudad a coordenadas usando configuración global
+            let lat, lon, name, region, country;
             
-            const data = await response.json();
-            currentForecastData = data;
+            if (typeof cityOrCoords === 'string') {
+                // Si es string, buscar coordenadas por nombre de ciudad
+                const locationData = window.findLocationByName(cityOrCoords);
+                if (locationData) {
+                    lat = locationData.lat;
+                    lon = locationData.lon;
+                    name = locationData.name;
+                    region = locationData.region;
+                    country = locationData.country;
+                } else {
+                    throw new Error('Ubicación no encontrada');
+                }
+            } else {
+                // Si ya son coordenadas
+                lat = cityOrCoords.lat;
+                lon = cityOrCoords.lon;
+                name = cityOrCoords.name || 'Ubicación personalizada';
+                region = cityOrCoords.region || '';
+                country = cityOrCoords.country || '';
+            }
 
-            const { lat, lon, name, region } = data.location;
-            initMap(lat, lon, `${name}, ${region}`);
-            updateWeatherUI(currentForecastData, dateInput.value);
-
-            // Enviar datos al backend para obtener predicción/IA cada vez que cargamos una ubicación
-            // Formato esperado por la API backend: /predict?lat={lat}&lon={lon}&date={YYYY-MM-DD}
-            try {
-                await sendDataToApi({ date: dateInput.value, name, region, country: data.location.country, lat, lon });
-            } catch (e) {
-                console.error('Error enviando datos al backend:', e);
+            // Obtener predicción de tu backend
+            const selectedDate = dateInput.value || getTodayDateString();
+            const prediction = await weatherAPI.getPrediction(lat, lon, selectedDate);
+            
+            if (prediction && prediction.success) {
+                // Crear datos de forecast simulado basado en la predicción
+                currentForecastData = createForecastDataFromPrediction(prediction, name, region, country);
+                
+                // Actualizar mapa y UI
+                initMap(lat, lon, `${name}, ${region}`);
+                updateWeatherUI(currentForecastData, selectedDate);
+                
+                // Mostrar información adicional de la predicción
+                showPredictionInfo(prediction);
+            } else {
+                throw new Error('No se pudo obtener la predicción del clima');
             }
 
         } catch (error) {
             console.error('Error al buscar la ubicación:', error);
-            alert('Ubicación no encontrada. Por favor, intenta con otro nombre.');
+            alert('Error al obtener el clima. Por favor, intenta con otra ubicación.');
         }
     }
 
@@ -352,14 +373,14 @@ document.addEventListener('DOMContentLoaded', function() {
             suggestionsContainer.style.display = 'none';
             return;
         }
-        const apiUrl = `https://api.weatherapi.com/v1/search.json?key=${API_KEY}&q=${query}`;
+        
         try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) return;
-            const suggestions = await response.json();
+            // Usar ubicaciones predefinidas de la configuración global
+            const suggestions = window.getFilteredSuggestions(query);
             displaySuggestions(suggestions);
         } catch (error) {
             console.error('Error fetching suggestions:', error);
+            suggestionsContainer.style.display = 'none';
         }
     }
     
@@ -417,6 +438,107 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctx2 = document.getElementById('newSummaryChart');
     new Chart(ctx2, { type: 'line', data: chartData, options: chartOptions });
 
+    // --- FUNCIONES AUXILIARES PARA BACKEND ---
+    
+    // Crear datos de forecast simulado basado en la predicción
+    function createForecastDataFromPrediction(prediction, name, region, country) {
+        const pred = prediction.predictions;
+        const predDate = prediction.prediction_date;
+        
+        return {
+            location: {
+                name: name,
+                region: region,
+                country: country,
+                lat: prediction.location.latitude,
+                lon: prediction.location.longitude
+            },
+            current: {
+                temp_c: pred.temperature_c,
+                condition: {
+                    text: getWeatherConditionText(pred),
+                    icon: getWeatherIcon(pred)
+                },
+                wind_kph: pred.wind_speed_ms * 3.6,
+                pressure_mb: pred.pressure_kpa * 10,
+                humidity: pred.humidity_percent,
+                feelslike_c: pred.temperature_c + (pred.humidity_percent > 70 ? 2 : -1),
+                is_day: 1
+            },
+            forecast: {
+                forecastday: [{
+                    date: predDate,
+                    day: {
+                        maxtemp_c: pred.temperature_max_c,
+                        mintemp_c: pred.temperature_min_c,
+                        avgtemp_c: pred.temperature_c,
+                        totalprecip_mm: pred.precipitation_mm_per_day,
+                        avghumidity: pred.humidity_percent,
+                        condition: {
+                            text: getWeatherConditionText(pred),
+                            icon: getWeatherIcon(pred)
+                        }
+                    },
+                    hour: generateHourlyData(pred)
+                }]
+            }
+        };
+    }
+    
+    // Generar texto de condición climática basado en la predicción
+    function getWeatherConditionText(pred) {
+        if (pred.precipitation_mm_per_day > 10) return 'Lluvia';
+        if (pred.precipitation_mm_per_day > 1) return 'Llovizna';
+        if (pred.cloud_cover_percent > 80) return 'Nublado';
+        if (pred.cloud_cover_percent > 50) return 'Parcialmente nublado';
+        return 'Despejado';
+    }
+    
+    // Obtener icono de clima basado en la predicción
+    function getWeatherIcon(pred) {
+        if (pred.precipitation_mm_per_day > 10) return '//cdn.weatherapi.com/weather/64x64/day/302.png';
+        if (pred.precipitation_mm_per_day > 1) return '//cdn.weatherapi.com/weather/64x64/day/296.png';
+        if (pred.cloud_cover_percent > 80) return '//cdn.weatherapi.com/weather/64x64/day/119.png';
+        if (pred.cloud_cover_percent > 50) return '//cdn.weatherapi.com/weather/64x64/day/116.png';
+        return '//cdn.weatherapi.com/weather/64x64/day/113.png';
+    }
+    
+    // Generar datos por horas simulados
+    function generateHourlyData(pred) {
+        const hours = [];
+        for (let i = 0; i < 24; i++) {
+            const temp = pred.temperature_c + Math.sin(i * Math.PI / 12) * (pred.temperature_max_c - pred.temperature_min_c) / 2;
+            hours.push({
+                time: `${i.toString().padStart(2, '0')}:00`,
+                temp_c: Math.round(temp * 10) / 10,
+                condition: {
+                    text: getWeatherConditionText(pred),
+                    icon: getWeatherIcon(pred)
+                },
+                wind_kph: pred.wind_speed_ms * 3.6,
+                humidity: pred.humidity_percent,
+                pressure_mb: pred.pressure_kpa * 10
+            });
+        }
+        return hours;
+    }
+    
+    // Mostrar información de la predicción
+    function showPredictionInfo(prediction) {
+        // Buscar elemento AI prompt para mostrar info
+        const aiPromptEl = document.getElementById('ai-prompt');
+        if (aiPromptEl) {
+            aiPromptEl.innerHTML = `
+                <strong>🤖 Predicción ML generada</strong><br>
+                Fecha: ${prediction.prediction_date}<br>
+                Ubicación: ${prediction.location.latitude.toFixed(4)}, ${prediction.location.longitude.toFixed(4)}<br>
+                <small>Generado: ${new Date(prediction.generated_at).toLocaleString()}</small>
+            `;
+        }
+        
+        // También mostrar en consola
+        console.log('✅ Predicción ML cargada:', prediction);
+    }
 
     // --- FUNCIÓN DE INICIALIZACIÓN ---
     function initializeApp() {

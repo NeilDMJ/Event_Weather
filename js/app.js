@@ -335,6 +335,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeApp();
 
+    async function handleCoordinateSearch(event) {
+        // Prevenir que el formulario recargue la página
+        event.preventDefault(); 
+        
+        // 1. Obtener los valores de los inputs
+        const latInput = document.getElementById('lat-input');
+        const lonInput = document.getElementById('lon-input');
+        const dateInput = document.getElementById('date-input'); // El input de fecha del formulario
+
+        const lat = parseFloat(latInput.value);
+        const lon = parseFloat(lonInput.value);
+        const date = dateInput.value;
+
+        // 2. Validar que los datos no estén vacíos y sean correctos
+        if (isNaN(lat) || isNaN(lon) || !date) {
+            alert('Por favor, introduce una latitud, longitud y fecha válidas.');
+            return;
+        }
+
+        console.log(`Buscando predicción para Lat: ${lat}, Lon: ${lon}, Fecha: ${date}`);
+
+        // Muestra un indicador de carga
+        mainCard.temp.textContent = '..°';
+        
+        try {
+            // 3. Llamar a la API para obtener la predicción (de api-integration.js)
+            const prediction = await getEnhancedPrediction(lat, lon, date);
+
+            if (prediction && prediction.predictions) {
+                // 4. Actualizar la interfaz con los nuevos datos (de api-integration.js)
+                displayPredictionData(prediction);
+
+                // 5. Actualizar el título de la ubicación principal
+                locationNameElement.textContent = `Coordenadas: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                
+                // 6. Actualizar la vista del mapa (la variable 'map' es accesible aquí)
+                if (map) {
+                    updateMap(lat, lon, `Predicción para ${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+                }
+            } else {
+                alert('No se pudo obtener la predicción para la ubicación y fecha seleccionadas.');
+                mainCard.temp.textContent = '--°'; // Restaura a un estado de error
+            }
+        } catch (error) {
+            console.error('Error en la búsqueda por coordenadas:', error);
+            alert('Ocurrió un error al contactar al servidor. Inténtalo de nuevo.');
+            mainCard.temp.textContent = '--°';
+        }
+    }
+
+    // --- CONECTAR LA FUNCIÓN AL FORMULARIO ---
+    // Busca el formulario por su ID. Debes agregar id="coordinate-form" a tu <form>
+    const coordinateForm = document.getElementById('coordinate-form'); 
+    if (coordinateForm) {
+        coordinateForm.addEventListener('submit', handleCoordinateSearch);
+    }
+
     // --- FUNCIONALIDAD DE CAMBIO DE TEMA ---
     const themeToggleBtn = document.querySelector('.theme-switcher');
     
@@ -352,6 +409,161 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar el mapa con el nuevo tema
         updateMapTheme();
     });
+
+    // --- LOGIN / REGISTER MODAL SETUP ---
+    // Append modal markup to body
+    (function injectLoginModal(){
+        const modalHtml = `
+        <div id="login-backdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
+          <div class="login-modal" role="document">
+            <h3 id="login-title">Acceder</h3>
+            <div>
+            <label for="login-email">Correo</label>
+            <input id="login-email" type="email" placeholder="tu@correo.com">
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" type="password" placeholder="Contraseña">
+            </div>
+            <div class="login-actions">
+            <button id="login-submit" class="btn btn-primary">Entrar</button>
+            <button id="login-switch" class="btn btn-ghost">Crear cuenta</button>
+            <button id="login-close" class="btn btn-ghost">Cerrar</button>
+            </div>
+            <p id="login-error" class="login-error"></p>
+            <p id="login-success" class="login-success"></p>
+        </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    })();
+
+    const loginBtn = document.getElementById('user-login-btn');
+    const loginBackdrop = document.getElementById('login-backdrop');
+    const loginClose = document.getElementById('login-close');
+    const loginSwitch = document.getElementById('login-switch');
+    const loginSubmit = document.getElementById('login-submit');
+    const loginTitle = document.getElementById('login-title');
+    const loginError = document.getElementById('login-error');
+    const loginSuccess = document.getElementById('login-success');
+    const loginEmail = document.getElementById('login-email');
+    const loginPassword = document.getElementById('login-password');
+    const userNameSpan = document.getElementById('user-name');
+
+    let isRegisterMode = false;
+
+    function openLoginModal() {
+        loginBackdrop.classList.add('active');
+        loginBackdrop.setAttribute('aria-hidden', 'false');
+        loginEmail.focus();
+        loginError.style.display = 'none';
+        loginSuccess.style.display = 'none';
+    }
+
+    function closeLoginModal() {
+        loginBackdrop.classList.remove('active');
+        loginBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            const stored = localStorage.getItem('ew_user');
+            if (stored) {
+                const u = JSON.parse(stored);
+                userNameSpan.textContent = u.email.split('@')[0];
+                userNameSpan.style.display = 'inline-block';
+                // Offer to logout if already logged
+                if (!confirm(`Cerrar sesión de ${u.email}?`)) return;
+                localStorage.removeItem('ew_user');
+                userNameSpan.style.display = 'none';
+                alert('Sesión cerrada');
+                return;
+            }
+            openLoginModal();
+        });
+    }
+
+    if (loginClose) loginClose.addEventListener('click', closeLoginModal);
+    if (loginBackdrop) loginBackdrop.addEventListener('click', (e)=>{ if (e.target === loginBackdrop) closeLoginModal(); });
+
+    if (loginSwitch) loginSwitch.addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode;
+        loginTitle.textContent = isRegisterMode ? 'Crear cuenta' : 'Acceder';
+        loginSwitch.textContent = isRegisterMode ? '¿Ya tienes cuenta? Entrar' : 'Crear cuenta';
+        loginSubmit.textContent = isRegisterMode ? 'Registrar' : 'Entrar';
+        loginError.style.display = 'none';
+        loginSuccess.style.display = 'none';
+    });
+
+    async function attemptBackendAuth(path, body) {
+        try {
+            const url = new URL(`http://localhost:8000/${path}`);
+            const resp = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+            if (!resp.ok) throw new Error(await resp.text());
+            return await resp.json();
+        } catch (err) {
+            console.warn('Backend auth failed:', err);
+            return null;
+        }
+    }
+
+    if (loginSubmit) loginSubmit.addEventListener('click', async () => {
+        loginError.style.display = 'none';
+        loginSuccess.style.display = 'none';
+        const email = loginEmail.value.trim();
+        const pwd = loginPassword.value;
+        if (!email || !pwd) { loginError.textContent = 'Rellena correo y contraseña.'; loginError.style.display = 'block'; return; }
+
+        if (isRegisterMode) {
+            // Try backend register then fallback to localStorage
+            const res = await attemptBackendAuth('register', { email, password: pwd });
+            if (res && res.success) {
+                loginSuccess.textContent = 'Cuenta creada. Sesión iniciada.'; loginSuccess.style.display = 'block';
+                localStorage.setItem('ew_user', JSON.stringify({ email }));
+                userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+                setTimeout(closeLoginModal, 900);
+                return;
+            }
+            // fallback: save to localStorage users list
+            const users = JSON.parse(localStorage.getItem('ew_users') || '{}');
+            if (users[email]) { loginError.textContent = 'Usuario ya existe (fallback).'; loginError.style.display = 'block'; return; }
+            users[email] = { password: pwd };
+            localStorage.setItem('ew_users', JSON.stringify(users));
+            localStorage.setItem('ew_user', JSON.stringify({ email }));
+            loginSuccess.textContent = 'Cuenta creada (local). Sesión iniciada.'; loginSuccess.style.display = 'block';
+            userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+            setTimeout(closeLoginModal, 900);
+            return;
+        } else {
+            // Login flow: try backend, then fallback
+            const res = await attemptBackendAuth('login', { email, password: pwd });
+            if (res && res.success) {
+                localStorage.setItem('ew_user', JSON.stringify({ email }));
+                loginSuccess.textContent = 'Sesión iniciada.'; loginSuccess.style.display = 'block';
+                userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+                setTimeout(closeLoginModal, 700);
+                return;
+            }
+            // Fallback: check localStorage
+            const users = JSON.parse(localStorage.getItem('ew_users') || '{}');
+            if (users[email] && users[email].password === pwd) {
+                localStorage.setItem('ew_user', JSON.stringify({ email }));
+                loginSuccess.textContent = 'Sesión iniciada (local).'; loginSuccess.style.display = 'block';
+                userNameSpan.textContent = email.split('@')[0]; userNameSpan.style.display = 'inline-block';
+                setTimeout(closeLoginModal, 700);
+                return;
+            }
+            loginError.textContent = 'Credenciales inválidas.'; loginError.style.display = 'block';
+        }
+    });
+
+    // If user already logged in show name
+    (function restoreUser(){
+        const stored = localStorage.getItem('ew_user');
+        if (stored) {
+            const u = JSON.parse(stored);
+            userNameSpan.textContent = u.email.split('@')[0];
+            userNameSpan.style.display = 'inline-block';
+        }
+    })();
 
     // --- MANEJO DEL FORM .new-chart-card CON ESTADO DE CARGA ---
     const card = document.querySelector('.new-chart-card');
@@ -421,4 +633,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 });

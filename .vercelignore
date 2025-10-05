@@ -1,5 +1,5 @@
+# Ignorar backend y archivos innecesarios para frontend
 backend/
-models/
 docs/
 frontend/
 *.sh

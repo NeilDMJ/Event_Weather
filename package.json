@@ -1,0 +1,13 @@
+{
+  "name": "event-weather-frontend",
+  "version": "1.0.0",
+  "description": "Weather Dashboard with ML Predictions",
+  "main": "frontend/index.html",
+  "scripts": {
+    "start": "python3 -m http.server 3000",
+    "dev": "python3 -m http.server 3000"
+  },
+  "keywords": ["weather", "dashboard", "ml", "predictions"],
+  "author": "SaviDevs",
+  "license": "MIT"
+}

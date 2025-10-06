@@ -33,8 +33,40 @@ app.add_middleware(
 )
 
 # Inicializar predictor mejorado
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://eventweather_user:eventweather_pass@postgres:5432/eventweather_db")
+enhanced_predictor = EnhancedClimatePredictor(DATABASE_URL)
+
+# backend/app/main.py
+
+# ... (tus imports y la inicialización de la app FastAPI) ...
+
+# Inicializar predictor mejorado
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://eventweather_user:eventweather_pass@localhost:5432/eventweather_db")
 enhanced_predictor = EnhancedClimatePredictor(DATABASE_URL)
+
+# --- INICIO DEL CÓDIGO A AGREGAR ---
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Inicializar la conexión a la base de datos cuando la aplicación arranque.
+    """
+    if enhanced_predictor.use_database:
+        await enhanced_predictor.initialize()
+        print("INFO:     Conexión a la base de datos inicializada.")
+    else:
+        print("INFO:     La base de datos no está configurada, operando en modo fallback.")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    Cerrar la conexión a la base de datos cuando la aplicación se detenga.
+    """
+    if enhanced_predictor.use_database:
+        await enhanced_predictor.cleanup()
+        print("INFO:     Conexión a la base de datos cerrada.")
+
+# --- FIN DEL CÓDIGO A AGREGAR ---
 
 @app.get("/")
 async def root():

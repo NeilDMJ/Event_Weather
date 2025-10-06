@@ -159,6 +159,7 @@ class ModelRepository:
                               model_versions: dict):
         """Guardar predicción en caché"""
         async with self.pool.acquire() as conn:
+            date_obj = datetime.strptime(prediction_date, '%Y-%m-%d').date()
             await conn.execute(
                 """
                 INSERT INTO prediction_cache 
@@ -171,7 +172,7 @@ class ModelRepository:
                     created_at = CURRENT_TIMESTAMP,
                     expires_at = EXCLUDED.expires_at
                 """,
-                latitude, longitude, prediction_date,
+                latitude, longitude, date_obj,
                 json.dumps(predictions), json.dumps(model_versions),
                 datetime.now() + timedelta(hours=6)  # Cache por 6 horas
             )
@@ -182,13 +183,14 @@ class ModelRepository:
                                    prediction_date: str) -> Optional[dict]:
         """Obtener predicción del caché si existe y no ha expirado"""
         async with self.pool.acquire() as conn:
+            date_obj = datetime.strptime(prediction_date, '%Y-%m-%d').date()
             row = await conn.fetchrow(
                 """
                 SELECT predictions FROM prediction_cache 
                 WHERE latitude = $1 AND longitude = $2 AND prediction_date = $3
                   AND expires_at > CURRENT_TIMESTAMP
                 """,
-                latitude, longitude, prediction_date
+                latitude, longitude, date_obj
             )
             
             if row:

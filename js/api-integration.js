@@ -6,7 +6,7 @@
 // Configuración del backend - AUTO-DETECTA URL
 const BACKEND_API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
     ? 'http://localhost:8004' 
-    : 'https://event-weather-backend.vercel.app'; // o tu URL de producción
+    : 'https://servicios.utm.mx/apiclima'; // o tu URL de producción
 
 let weatherAPIClient = null;
 

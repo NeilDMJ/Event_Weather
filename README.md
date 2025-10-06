@@ -30,6 +30,7 @@ Herramienta de IA utilizada: Se empleó un servicio dedicado de Gemini AI.
 /predict/summary: Genera un resumen conciso de 2-3 frases sobre el pronóstico, ideal para alertas o actualizaciones rápidas.
 
 ## Sources 
-[Nasa Power](https://power.larc.nasa.gov/)
-[Web Page](https://savidevs-weather-app.vercel.app/)
+-**Uso de la api de Nasa Power:** [Nasa Power](https://power.larc.nasa.gov/)
+
+-**Pagina web del resultado del proyecto:**[Web Page](https://savidevs-weather-app.vercel.app/)
 
